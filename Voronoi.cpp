@@ -123,7 +123,7 @@ PolyNode* kirkpatrick(const std::vector < Point* >& points, size_t begin, size_t
 
 int main(int argc, char** argv)
 {
-	/*int n;
+	int n;
 	std::vector < std::pair < double, double > > v;
 	std::vector < Point* > points;
 	double x, y;
@@ -145,8 +145,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	auto head = kirkpatrick(points, 0, points.size());*/
-
+	auto head = kirkpatrick(points, 0, points.size());
+	/*
 	if(SDL_Init(SDL_INIT_VIDEO) != 0) {
 		std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
 
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 	SDL_UpdateWindowSurface(window);
 
 	SDL_Delay(2000);
-
+	*/
 
 	return 0;
 }
