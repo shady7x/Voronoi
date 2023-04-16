@@ -1,7 +1,8 @@
 ﻿#include <iostream>
 #include <vector>
 #include <algorithm>
-#include <SDL2/SDL.h>
+#include <string>
+#include "vulkan_engine.h"
 
 const double EPS = 1e-10;
 
@@ -33,7 +34,7 @@ public:
 	PolyNode(Point* _p) : p(_p) {}
 };
 
-std::pair < PolyNode*, PolyNode* > find_right_chain(Point* p, PolyNode* right)
+std::pair< PolyNode*, PolyNode* > find_right_chain(Point* p, PolyNode* right)
 {
 	//if (right == nullptr)
 
@@ -48,7 +49,7 @@ std::pair < PolyNode*, PolyNode* > find_right_chain(Point* p, PolyNode* right)
 	}
 
 	PolyNode* current = right;
-	std::pair < PolyNode*, PolyNode* > chain;
+	std::pair< PolyNode*, PolyNode* > chain;
 
 	while (chain.first == nullptr || chain.second == nullptr)
 	{
@@ -70,7 +71,7 @@ PolyNode* merge(PolyNode* left, PolyNode* right)
 	auto chain = find_right_chain(left->p, right);
 	PolyNode* l = left->next;
 	PolyNode* r = chain.first;
-	std::vector < PolyNode* > m;
+	std::vector< PolyNode* > m;
 	m.emplace_back(left);
 	while (l != nullptr || r != nullptr)
 	{
@@ -107,7 +108,7 @@ PolyNode* merge(PolyNode* left, PolyNode* right)
 	return m[0]; // left
 }
 
-PolyNode* kirkpatrick(const std::vector < Point* >& points, size_t begin, size_t end)
+PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t end)
 {
 	if (end - begin == 1)
 	{
@@ -123,7 +124,7 @@ PolyNode* kirkpatrick(const std::vector < Point* >& points, size_t begin, size_t
 
 int main(int argc, char** argv)
 {
-	int n;
+	/*int n;
 	std::vector < std::pair < double, double > > v;
 	std::vector < Point* > points;
 	double x, y;
@@ -146,33 +147,21 @@ int main(int argc, char** argv)
 	}
 
 	auto head = kirkpatrick(points, 0, points.size());
-	/*
-	if(SDL_Init(SDL_INIT_VIDEO) != 0) {
-		std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
-
-		return 1;
-	}
-
-	const int SDL_SCREEN_WIDTH = 640;
-	const int SDL_SCREEN_HEIGHT = 480;
-	SDL_Window* window = SDL_CreateWindow("Hello, SDL 2!",
-	SDL_WINDOWPOS_UNDEFINED,
-	SDL_WINDOWPOS_UNDEFINED,
-	SDL_SCREEN_WIDTH,
-	SDL_SCREEN_HEIGHT,
-	SDL_WINDOW_SHOWN);
-	if (window == nullptr) {
-		std::cout << SDL_GetError() << std::endl;
-		return 1;
-	}
-	SDL_Surface* screen_surface = SDL_GetWindowSurface(window);
-
-	SDL_FillRect(screen_surface, NULL, SDL_MapRGB(screen_surface->format, 0, 255, 0));
-
-	SDL_UpdateWindowSurface(window);
-
-	SDL_Delay(2000);
 	*/
+
+
+	
+	/*std::vector< std::string > extensions;
+	getAvailableVulkanExtensions(window, extensions);
+    
+	SDL_Surface* screen_surface = SDL_GetWindowSurface(window);
+	SDL_FillRect(screen_surface, NULL, SDL_MapRGB(screen_surface->format, 0, 255, 0));
+	SDL_UpdateWindowSurface(window);*/
+
+	VulkanEngine engine;
+	engine.init();
+	engine.run();
+	engine.cleanup();
 
 	return 0;
 }
