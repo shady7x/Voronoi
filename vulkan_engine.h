@@ -5,6 +5,8 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+#define ENABLE_VALIDATION_LAYERS true
+
 class VulkanEngine
 {
     public:
@@ -26,7 +28,10 @@ class VulkanEngine
         { 
             "VK_LAYER_KHRONOS_validation"
         };
-        bool checkValidationLayersSupport(const std::vector< const char* > layers);
-        void createPhysicalAndLogicalDevice();
+        bool checkValidationLayersSupport();
+        std::vector< const char* > getExtensions();
         void initVulkan();
+        void createInstance();
+        void createPhysicalAndLogicalDevice();
+    
 };

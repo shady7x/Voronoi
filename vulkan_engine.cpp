@@ -58,7 +58,7 @@ void VulkanEngine::run()
     }
 }
 
-bool VulkanEngine::checkValidationLayersSupport(const std::vector< const char* > layers)
+bool VulkanEngine::checkValidationLayersSupport()
 {
     uint32_t layersCount = 0;
 	if (vkEnumerateInstanceLayerProperties(&layersCount, nullptr) != VK_SUCCESS)
@@ -74,12 +74,7 @@ bool VulkanEngine::checkValidationLayersSupport(const std::vector< const char* >
 		return false;
     }
 
-    /*for (const auto& availableLayer : availableLayers)
-    {
-        std::cout << availableLayer.layerName << std::endl;
-    }*/
-
-    for (const char* layer : layers)
+    for (const char* layer : validationLayers)
     {
         bool foundLayer = false;
         for (const auto& availableLayer : availableLayers)
@@ -90,7 +85,6 @@ bool VulkanEngine::checkValidationLayersSupport(const std::vector< const char* >
                 break;
             }
         }
-
         if (foundLayer == false)
         {
             std::cout << "Layer not found " << layer << std::endl;
@@ -99,6 +93,54 @@ bool VulkanEngine::checkValidationLayersSupport(const std::vector< const char* >
     }
 
 	return true;
+}
+
+
+std::vector< const char* > VulkanEngine::getExtensions() {
+    uint32_t extCount = 0;
+	if (!SDL_Vulkan_GetInstanceExtensions(window, &extCount, nullptr))
+	{
+        throw std::runtime_error("Unable to query Vulkan instance extensions");
+	}
+
+	std::vector< const char* > extensions(extCount);
+	if (!SDL_Vulkan_GetInstanceExtensions(window, &extCount, extensions.data()))
+	{
+        throw std::runtime_error("Unable to query Vulkan instance extensions names");
+	}
+	extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    return extensions;
+}
+
+void VulkanEngine::createInstance() {
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Voronoi";
+    appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    appInfo.pEngineName = "no engine";
+    appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+
+    auto extensions = getExtensions();
+    createInfo.enabledExtensionCount = extensions.size();
+    createInfo.ppEnabledExtensionNames = extensions.data();
+
+    if (!validationLayers.empty() && checkValidationLayersSupport()) {
+        createInfo.enabledLayerCount = validationLayers.size();
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+        createInfo.pNext = nullptr;
+    }
+
+    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed create vulkan instance");
+    }
 }
 
 void VulkanEngine::createPhysicalAndLogicalDevice()
@@ -128,7 +170,7 @@ void VulkanEngine::createPhysicalAndLogicalDevice()
             std::vector< VkQueueFamilyProperties > queueFamilies(queueFamilyCount); 
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-            for (auto i = 0; i < queueFamilies.size(); ++i)
+            for (size_t i = 0; i < queueFamilies.size(); ++i)
             {
                 if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
                 {
@@ -157,61 +199,11 @@ void VulkanEngine::createPhysicalAndLogicalDevice()
             }
         }
     }
-
     throw std::runtime_error("No suitable GPU found");
 }
 
 void VulkanEngine::initVulkan()
 {
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Voronoi";
-    appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    appInfo.pEngineName = "no engine";
-    appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-
-    //////////////// extensions /////////////////
-    uint32_t extCount = 0;
-	if (!SDL_Vulkan_GetInstanceExtensions(window, &extCount, nullptr))
-	{
-        throw std::runtime_error("Unable to query Vulkan instance extensions");
-	}
-
-	std::vector< const char* > extensions(extCount);
-	if (!SDL_Vulkan_GetInstanceExtensions(window, &extCount, extensions.data()))
-	{
-        throw std::runtime_error("Unable to query Vulkan instance extensions names");
-	}
-	extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
-    createInfo.enabledExtensionCount = extCount;
-    createInfo.ppEnabledExtensionNames = extensions.data();
-
-    ///////////////// layers ///////////////
-    if (!validationLayers.empty())
-    {
-        if (!checkValidationLayersSupport(validationLayers))
-        {
-            throw std::runtime_error("Failed create validation layers");
-        }
-        createInfo.enabledLayerCount = validationLayers.size();
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-    }
-    else 
-    {
-        createInfo.enabledLayerCount = 0;
-    }
-
-    /////////////////////////////////////////    
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed create vulkan instance");
-    }
-
+    createInstance();
     createPhysicalAndLogicalDevice();
 }

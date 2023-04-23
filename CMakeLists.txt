@@ -5,6 +5,8 @@ set(VK_LAYER_PATH "C:\\msys64\\ucrt64\\bin")
 set(VK_SDK_PATH "C:\\msys64\\ucrt64\\bin")
 set(VULKAN_SDK "C:\\msys64\\ucrt64\\bin")
 
+set(CMAKE_CXX_FLAGS "-Wall")
+
 find_package(SDL2 REQUIRED)
 find_package(Vulkan REQUIRED)
 add_executable(voronoi voronoi.cpp)
