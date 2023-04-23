@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <set>
+#include <optional>
 #include "vulkan_engine.h"
 
 void VulkanEngine::init()
@@ -29,7 +31,7 @@ void VulkanEngine::initVulkan()
 {
     createInstance();
     createSurface();
-    createPhysicalAndLogicalDevice();
+    pickPhysicalAndCreateLogicalDevice();
 }
 
 void VulkanEngine::cleanup()
@@ -171,7 +173,7 @@ void VulkanEngine::createInstance() {
     }
 }
 
-void VulkanEngine::createPhysicalAndLogicalDevice()
+void VulkanEngine::pickPhysicalAndCreateLogicalDevice()
 {
     uint32_t deviceCount = 0;
     if (vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr) != VK_SUCCESS || deviceCount == 0)
@@ -188,42 +190,104 @@ void VulkanEngine::createPhysicalAndLogicalDevice()
     {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        VkPhysicalDeviceFeatures deviceFeatures;
-        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader)
+        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
+            uint32_t deviceExtensionsCount;
+            if (vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionsCount, nullptr) != VK_SUCCESS || deviceExtensionsCount == 0)
+            {
+                std::cout << "Failed to get device extensions count" << std::endl;
+                continue;
+            }
+            std::vector< VkExtensionProperties > availableDeviceExtensions(deviceExtensionsCount);
+            if (vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionsCount, availableDeviceExtensions.data()) != VK_SUCCESS)
+            {
+                std::cout << "Failed to get available device extensions" << std::endl;
+                continue;
+            }
+            bool isSuitableDevice = true;
+            for (const auto& deviceExtension : deviceExtensions)
+            {
+                bool extensionSupported = false;
+                for (const auto& availableDeviceExtension : availableDeviceExtensions)
+                {
+                    if (strcmp(deviceExtension, availableDeviceExtension.extensionName) == 0)
+                    {
+                        extensionSupported = true;
+                        break;
+                    }
+                }
+                if (!extensionSupported)
+                {
+                    isSuitableDevice = false;
+                    std::cout << "Unsupported device extension: " << deviceExtension << std::endl;
+                    break;
+                }
+            }
+            if (!isSuitableDevice) 
+            {
+                continue;
+            }
             uint32_t queueFamilyCount = 0;
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
             std::vector< VkQueueFamilyProperties > queueFamilies(queueFamilyCount); 
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-            for (size_t i = 0; i < queueFamilies.size(); ++i)
+            std::optional< uint32_t > graphicsFamily, presentFamily;
+            for (uint32_t i = 0; i < queueFamilies.size(); ++i)
             {
                 if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
                 {
+                    graphicsFamily = i;
+                }
+                VkBool32 presentSupport = false;
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+                if (presentSupport)
+                {
+                    presentFamily = i;
+                }
+                if (graphicsFamily.has_value() && presentFamily.has_value())
+                {
                     chosenGPU = device;
+                    break;
+                }
+            }
+
+            if (chosenGPU != VK_NULL_HANDLE)
+            {
+                std::vector< VkDeviceQueueCreateInfo > queueCreateInfos;
+                std::set< uint32_t > uniqueQueueFamilies = { graphicsFamily.value(), presentFamily.value() };
+                float queuePriority = 1.0f;
+                for (auto queueFamily : uniqueQueueFamilies)
+                {
                     VkDeviceQueueCreateInfo queueCreateInfo{};
                     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                    queueCreateInfo.queueFamilyIndex = i;
+                    queueCreateInfo.queueFamilyIndex = queueFamily;
                     queueCreateInfo.queueCount = 1;
-                    float queuePriority = 1.0f;
                     queueCreateInfo.pQueuePriorities = &queuePriority;
-
-                    VkPhysicalDeviceFeatures df{};
-                    VkDeviceCreateInfo deviceCreateInfo{};
-                    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-                    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-                    deviceCreateInfo.queueCreateInfoCount = 1;
-                    deviceCreateInfo.pEnabledFeatures = &df;
-
-                    if (vkCreateDevice(chosenGPU, &deviceCreateInfo, nullptr, &vulkanDevice) != VK_SUCCESS)
-                    {
-                        throw std::runtime_error("Failed to create logical device");
-                    }
-
-                    return;
+                    queueCreateInfos.push_back(queueCreateInfo);
                 }
+                VkPhysicalDeviceFeatures deviceFeatures{};
+                VkDeviceCreateInfo deviceCreateInfo{};
+                deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+                deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+                deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+                deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+                deviceCreateInfo.enabledExtensionCount = 0;
+                if (validationLayers.empty())
+                {
+                    deviceCreateInfo.enabledLayerCount = 0;
+                }
+                else 
+                {
+                    deviceCreateInfo.enabledLayerCount = validationLayers.size();
+                    deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+                }
+                if (vkCreateDevice(chosenGPU, &deviceCreateInfo, nullptr, &vulkanDevice) != VK_SUCCESS)
+                {
+                    throw std::runtime_error("Failed to create logical device");
+                }
+                vkGetDeviceQueue(vulkanDevice, graphicsFamily.value(), 0, &graphicsQueue);
+                vkGetDeviceQueue(vulkanDevice, presentFamily.value(), 0, &presentQueue);
+                return;
             }
         }
     }

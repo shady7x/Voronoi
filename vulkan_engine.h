@@ -17,6 +17,8 @@ class VulkanEngine
         VkPhysicalDevice chosenGPU = VK_NULL_HANDLE; // GPU chosen as the default device
         VkDevice vulkanDevice; // Vulkan device for commands
         VkSurfaceKHR surface; // Vulkan window surface
+        VkQueue graphicsQueue;
+        VkQueue presentQueue;
 
         void init();
         void cleanup();
@@ -24,6 +26,9 @@ class VulkanEngine
         void run();
 
     private:
+        const std::vector< const char* > deviceExtensions = { 
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
         const std::vector< const char* > validationLayers = { 
             "VK_LAYER_KHRONOS_validation"
         };
@@ -31,7 +36,7 @@ class VulkanEngine
         std::vector< const char* > getExtensions();
         void initVulkan();
         void createInstance();
-        void createPhysicalAndLogicalDevice();
+        void pickPhysicalAndCreateLogicalDevice();
         void createSurface();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
