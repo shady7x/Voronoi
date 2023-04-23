@@ -12,7 +12,7 @@ void VulkanEngine::init()
 	const int SDL_SCREEN_WIDTH = 800;
 	const int SDL_SCREEN_HEIGHT = 600;
 
-	SDL_Window* window = SDL_CreateWindow("Hello, SDL 2!", 
+	window = SDL_CreateWindow("Hello, SDL 2!", 
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
         SDL_SCREEN_WIDTH, SDL_SCREEN_HEIGHT, 
         SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
@@ -28,6 +28,7 @@ void VulkanEngine::init()
 void VulkanEngine::initVulkan()
 {
     createInstance();
+    createSurface();
     createPhysicalAndLogicalDevice();
 }
 
@@ -107,13 +108,20 @@ std::vector< const char* > VulkanEngine::getExtensions() {
 	{
         throw std::runtime_error("Unable to query Vulkan instance extensions");
 	}
-
+    
 	std::vector< const char* > extensions(extCount);
 	if (!SDL_Vulkan_GetInstanceExtensions(window, &extCount, extensions.data()))
 	{
         throw std::runtime_error("Unable to query Vulkan instance extensions names");
 	}
-	extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	//extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+
+    for (auto extension : extensions)
+    {
+        std::cout << extension << std::endl;
+    }
+
     return extensions;
 }
 
@@ -137,6 +145,12 @@ void VulkanEngine::createInstance() {
     if (!validationLayers.empty() && checkValidationLayersSupport()) {
         createInfo.enabledLayerCount = validationLayers.size();
         createInfo.ppEnabledLayerNames = validationLayers.data();
+        VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{};
+        debugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugMessengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugMessengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugMessengerCreateInfo.pfnUserCallback = debugCallbackFunc;
+        createInfo.pNext = &debugMessengerCreateInfo;
     } else {
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = nullptr;
@@ -144,7 +158,16 @@ void VulkanEngine::createInstance() {
 
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed create vulkan instance");
+        throw std::runtime_error("Failed to create vulkan instance");
+    }
+
+    if (createInfo.pNext != nullptr)
+    {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"); 
+        if (func == nullptr || func(instance, (VkDebugUtilsMessengerCreateInfoEXT*) createInfo.pNext, nullptr, &debugMessenger) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create debug messenger, func is null: " + std::to_string(func == nullptr));
+        }
     }
 }
 
@@ -207,3 +230,10 @@ void VulkanEngine::createPhysicalAndLogicalDevice()
     throw std::runtime_error("No suitable GPU found");
 }
 
+void VulkanEngine::createSurface()
+{
+    if (SDL_Vulkan_CreateSurface(window, instance, &surface) == SDL_FALSE)
+    {
+        throw std::runtime_error("Failed to create Vulkan surface");
+    }
+}
