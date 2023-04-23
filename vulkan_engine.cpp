@@ -25,6 +25,12 @@ void VulkanEngine::init()
     initVulkan();
 }
 
+void VulkanEngine::initVulkan()
+{
+    createInstance();
+    createPhysicalAndLogicalDevice();
+}
+
 void VulkanEngine::cleanup()
 {
     vkDestroyDevice(vulkanDevice, nullptr);
@@ -94,7 +100,6 @@ bool VulkanEngine::checkValidationLayersSupport()
 
 	return true;
 }
-
 
 std::vector< const char* > VulkanEngine::getExtensions() {
     uint32_t extCount = 0;
@@ -202,8 +207,3 @@ void VulkanEngine::createPhysicalAndLogicalDevice()
     throw std::runtime_error("No suitable GPU found");
 }
 
-void VulkanEngine::initVulkan()
-{
-    createInstance();
-    createPhysicalAndLogicalDevice();
-}
