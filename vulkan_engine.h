@@ -6,25 +6,37 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <fstream>
 
 #define ENABLE_VALIDATION_LAYERS true
 
 class VulkanEngine
 {
     public:
-        VkExtent2D windowExtent{ 1700, 900 };
         SDL_Window* window{ nullptr };
         VkInstance instance; // Vulkan library handle
         VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE; // Vulkan debug output handle
-        VkPhysicalDevice chosenGPU = VK_NULL_HANDLE; // GPU chosen as the default device
-        VkDevice vulkanDevice = VK_NULL_HANDLE; // Vulkan device for commands
         VkSurfaceKHR surface; // Vulkan window surface
-        VkFormat swapChainImageFormat;
-        VkSwapchainKHR swapChain;
-        std::vector< VkImage > swapChainImages;
-        std::vector< VkImageView > swapChainImageViews;
+
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE; // GPU chosen as the default device
+        VkDevice vulkanDevice = VK_NULL_HANDLE; // Vulkan device for commands
+
         VkQueue graphicsQueue;
         VkQueue presentQueue;
+
+        VkSwapchainKHR swapChain;
+        std::vector< VkImage > swapChainImages;
+        VkFormat swapChainImageFormat;
+        VkExtent2D swapChainExtent;
+        std::vector< VkImageView > swapChainImageViews;
+        std::vector< VkFramebuffer > swapChainFramebuffers;
+
+        VkRenderPass renderPass;
+        VkPipelineLayout pipelineLayout;
+        VkPipeline graphicsPipeline;
+
+        VkCommandPool commandPool;
+        VkCommandBuffer commandBuffer;
 
         void init();
         void cleanup();
@@ -33,8 +45,8 @@ class VulkanEngine
 
     private:
         struct QueueFamilyIndices {
-            std::optional<uint32_t> graphicsFamily;
-            std::optional<uint32_t> presentFamily;
+            std::optional< uint32_t > graphicsFamily;
+            std::optional< uint32_t > presentFamily;
 
             bool isComplete() {
                 return graphicsFamily.has_value() && presentFamily.has_value();
@@ -85,9 +97,30 @@ class VulkanEngine
         void createSurface();
         void pickPhysicalAndCreateLogicalDevice();
         void createImageViews();
+        void createRenderPass();
+        void createGraphicPipeline();
+        VkShaderModule createShaderModule(const std::vector< char >& shader);
+        void createFramebuffers();
+        void createCommandPool();
+        void createCommandBuffer();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
             std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
             return VK_FALSE;
+        }
+
+        static std::vector< char > readFile(const std::string& fileName)
+        {
+            std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+            if (!file.is_open())
+            {
+                throw std::runtime_error("Failed to open file: " + fileName);
+            }
+            size_t fileSize = file.tellg();
+            std::vector< char > buffer(fileSize);
+            file.seekg(0);
+            file.read(buffer.data(), fileSize);
+            file.close();
+            return buffer;
         }
 };
