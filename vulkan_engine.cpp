@@ -31,11 +31,26 @@ void VulkanEngine::initVulkan()
     createInstance();
     createSurface();
     pickPhysicalAndCreateLogicalDevice();
+    createImageViews();
 }
 
 void VulkanEngine::cleanup()
 {
+    for (auto imageView : swapChainImageViews)
+    {
+        vkDestroyImageView(vulkanDevice, imageView, nullptr);
+    }
+    vkDestroySwapchainKHR(vulkanDevice, swapChain, nullptr);
     vkDestroyDevice(vulkanDevice, nullptr);
+    if (debugMessenger != VK_NULL_HANDLE)
+    {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        if (func != nullptr) 
+        {
+            func(instance, debugMessenger, nullptr);
+        }
+    }
+    vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
     if (window != nullptr)
     {
@@ -381,5 +396,31 @@ void VulkanEngine::createSurface()
     if (SDL_Vulkan_CreateSurface(window, instance, &surface) == SDL_FALSE)
     {
         throw std::runtime_error("Failed to create Vulkan surface");
+    }
+}
+
+void VulkanEngine::createImageViews()
+{
+    swapChainImageViews.resize(swapChainImages.size());
+    for (size_t i = 0; i < swapChainImages.size(); ++i)
+    {
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = swapChainImages[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = swapChainImageFormat;
+        imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        if (vkCreateImageView(vulkanDevice, &imageViewCreateInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create image view #" + std::to_string(i));
+        }
     }
 }

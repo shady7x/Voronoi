@@ -15,13 +15,14 @@ class VulkanEngine
         VkExtent2D windowExtent{ 1700, 900 };
         SDL_Window* window{ nullptr };
         VkInstance instance; // Vulkan library handle
-        VkDebugUtilsMessengerEXT debugMessenger; // Vulkan debug output handle
+        VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE; // Vulkan debug output handle
         VkPhysicalDevice chosenGPU = VK_NULL_HANDLE; // GPU chosen as the default device
         VkDevice vulkanDevice = VK_NULL_HANDLE; // Vulkan device for commands
         VkSurfaceKHR surface; // Vulkan window surface
         VkFormat swapChainImageFormat;
         VkSwapchainKHR swapChain;
         std::vector< VkImage > swapChainImages;
+        std::vector< VkImageView > swapChainImageViews;
         VkQueue graphicsQueue;
         VkQueue presentQueue;
 
@@ -81,8 +82,9 @@ class VulkanEngine
 
         void initVulkan();
         void createInstance();
-        void pickPhysicalAndCreateLogicalDevice();
         void createSurface();
+        void pickPhysicalAndCreateLogicalDevice();
+        void createImageViews();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
             std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
