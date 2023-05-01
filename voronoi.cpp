@@ -124,6 +124,15 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 
 int main(int argc, char** argv)
 {
+
+	VulkanEngine vulkanEngine;
+
+    try {
+        vulkanEngine.run();
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 	/*int n;
 	std::vector < std::pair < double, double > > v;
 	std::vector < Point* > points;
@@ -157,11 +166,6 @@ int main(int argc, char** argv)
 	SDL_Surface* screen_surface = SDL_GetWindowSurface(window);
 	SDL_FillRect(screen_surface, NULL, SDL_MapRGB(screen_surface->format, 0, 255, 0));
 	SDL_UpdateWindowSurface(window);*/
-
-	VulkanEngine engine;
-	engine.init();
-	engine.run();
-	engine.cleanup();
 
 	return 0;
 }
