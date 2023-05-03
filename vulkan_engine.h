@@ -82,7 +82,17 @@ class VulkanEngine {
         void createLogicalDevice();
         void createSwapChain();
         void createImageViews();
+        void createRenderPass();
+        void createGraphicsPipeline();
+        void createFramebuffers();
+        void createCommandPool();
+        void createCommandBuffer();
+        void createSyncObjects();
 
+        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        void drawFrame();
+
+        VkShaderModule createShaderModule(const std::vector<char> &code);
         QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice &device);
         SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice &device);
         std::vector<const char *> getRequiredExtensions();
