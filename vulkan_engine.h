@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <fstream>
+#include <optional>
 
 #ifdef NDEBUG
     #define ENABLE_VALIDATION_LAYERS false

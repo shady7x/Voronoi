@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <limits>
-#include <optional>
 #include <set>
 
 #include "vulkan_engine.h"
