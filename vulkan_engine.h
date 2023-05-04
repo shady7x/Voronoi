@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
+#include <iostream>
 #include <vector>
 #include <fstream>
 #include <optional>
@@ -99,7 +100,23 @@ class VulkanEngine {
         std::vector<const char *> getRequiredExtensions();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-            std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
+            switch (messageSeverity) {
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                    std::cout << "[VERBOSE] ";
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                    std::cout << "[INFO] ";
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                    std::cout << "[WARN] ";
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                    std::cout << "[ERROR] ";
+                    break;
+                default:
+                    std::cout << "[UNKNOWN] ";
+            }
+            std::cout << pCallbackData->pMessage << std::endl;
             return VK_FALSE;
         }
 
