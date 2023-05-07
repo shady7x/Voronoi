@@ -36,6 +36,7 @@ void VulkanEngine::initVulkan() {
     createGraphicsPipeline();
     createFramebuffers();
     createCommandPool();
+    createVertexBuffer();
     createCommandBuffer();
     createSyncObjects();
 }
@@ -67,15 +68,17 @@ void VulkanEngine::cleanupSwapChain() {
 
 void VulkanEngine::cleanup() {
     cleanupSwapChain();
+    vkDestroyPipeline(vulkanDevice, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
+    vkDestroyRenderPass(vulkanDevice, renderPass, nullptr);
+    vkDestroyBuffer(vulkanDevice, vertexBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, vertexBufferMemory, nullptr);
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         vkDestroySemaphore(vulkanDevice, renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(vulkanDevice, imageAvailableSemaphores[i], nullptr);
         vkDestroyFence(vulkanDevice, inFlightFences[i], nullptr);
     }
     vkDestroyCommandPool(vulkanDevice, commandPool, nullptr);
-    vkDestroyPipeline(vulkanDevice, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
-    vkDestroyRenderPass(vulkanDevice, renderPass, nullptr);
     vkDestroyDevice(vulkanDevice, nullptr);
     if (ENABLE_VALIDATION_LAYERS) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -500,24 +503,64 @@ void VulkanEngine::createFramebuffers() {
 
 void VulkanEngine::createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    VkCommandPoolCreateInfo commandPoolInfo{};
+    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-    if (vkCreateCommandPool(vulkanDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(vulkanDevice, &commandPoolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create command pool!");
     }
 }
 
+void VulkanEngine::createVertexBuffer() {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof(v[0]) * v.size();
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateBuffer(vulkanDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create vertex buffer");
+    }
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(vulkanDevice, vertexBuffer, &memoryRequirements);
+    VkMemoryAllocateInfo memoryAllocateInfo{};
+    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    memoryAllocateInfo.allocationSize = memoryRequirements.size;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+    VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    uint32_t memoryTypeIndex = 0;
+    bool foundMemoryType = false;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+        if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & flags) == flags) {
+            memoryTypeIndex = i;
+            foundMemoryType = true;
+            break;
+        }
+    }
+    if (!foundMemoryType) {
+        throw std::runtime_error("Failed to find suitable memory type");
+    }
+    memoryAllocateInfo.memoryTypeIndex = memoryTypeIndex;
+    if (vkAllocateMemory(vulkanDevice, &memoryAllocateInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate vertex buffer memory");
+    }
+    vkBindBufferMemory(vulkanDevice, vertexBuffer, vertexBufferMemory, 0);
+    void* data;
+    vkMapMemory(vulkanDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, v.data(), static_cast< size_t >(bufferInfo.size));
+    vkUnmapMemory(vulkanDevice, vertexBufferMemory);
+}
+
 void VulkanEngine::createCommandBuffer() {
     commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast< uint32_t >(commandBuffers.size());
-    if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+    VkCommandBufferAllocateInfo commandBufferInfo{};
+    commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferInfo.commandPool = commandPool;
+    commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferInfo.commandBufferCount = static_cast< uint32_t >(commandBuffers.size());
+    if (vkAllocateCommandBuffers(vulkanDevice, &commandBufferInfo, commandBuffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate command buffers!");
     }
 }
@@ -564,23 +607,27 @@ void VulkanEngine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t i
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(swapChainExtent.width);
-    viewport.height = static_cast<float>(swapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(swapChainExtent.width);
+        viewport.height = static_cast<float>(swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

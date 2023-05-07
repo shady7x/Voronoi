@@ -104,6 +104,8 @@ class VulkanEngine {
         VkPipeline graphicsPipeline;
 
         VkCommandPool commandPool;
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
         std::vector< VkCommandBuffer > commandBuffers;
 
         std::vector< VkSemaphore > imageAvailableSemaphores;
@@ -126,6 +128,7 @@ class VulkanEngine {
         void createGraphicsPipeline();
         void createFramebuffers();
         void createCommandPool();
+        void createVertexBuffer();
         void createCommandBuffer();
         void createSyncObjects();
 
