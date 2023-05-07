@@ -78,6 +78,7 @@ class VulkanEngine {
         void initWindow();
         void initVulkan();
         void mainLoop();
+        void cleanupSwapChain();
         void cleanup();
 
         void createInstance();
@@ -94,6 +95,7 @@ class VulkanEngine {
         void createSyncObjects();
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        void recreateSwapChain();
         void drawFrame();
 
         VkShaderModule createShaderModule(const std::vector<char> &code);
