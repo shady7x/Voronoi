@@ -139,6 +139,27 @@ int main(int argc, char** argv)
 	
 	VulkanEngine vulkanEngine;
 
+	std::vector< Vertex > vrtx;
+
+	Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+	auto curr = head->next;
+	while (curr->next != head) {
+		Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+		Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+		vrtx.emplace_back(a);
+		vrtx.emplace_back(b);
+		vrtx.emplace_back(c);
+		curr = curr->next;
+	}
+
+	vulkanEngine.v = vrtx;
+
+	for (size_t i = 0; i < vrtx.size(); i += 3) {
+		std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
+		std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
+		std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
+	}
+
     try {
         vulkanEngine.run();
     } catch (const std::exception& e) {

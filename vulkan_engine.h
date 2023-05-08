@@ -58,14 +58,9 @@ struct Vertex {
     }
 };
 
-const std::vector< Vertex > v = {
-    { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-    { { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
-    { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
-};
-
 class VulkanEngine {
     public:
+        std::vector< Vertex > v;
         void run();
     private:
         const std::vector<const char*> validationLayers = {
