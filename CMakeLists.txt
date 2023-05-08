@@ -3,10 +3,13 @@ project(voronoi VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-Wall")
 
-execute_process(COMMAND bash "-c" "glslc ../shaders/shader.vert -o vert.spv")
-execute_process(COMMAND bash "-c" "glslc ../shaders/shader.frag -o frag.spv")
-
-# execute_process(COMMAND "glslc shader.vert -o vert.spv")
+if (WIN32) 
+    execute_process(COMMAND cmd "/c" "glslc ../shaders/shader.vert -o vert.spv")
+    execute_process(COMMAND cmd "/c" "glslc ../shaders/shader.frag -o frag.spv")
+else()
+    execute_process(COMMAND bash "-c" "glslc ../shaders/shader.vert -o vert.spv")
+    execute_process(COMMAND bash "-c" "glslc ../shaders/shader.frag -o frag.spv")
+endif()
 
 find_package(SDL2 REQUIRED)
 find_package(Vulkan REQUIRED)
