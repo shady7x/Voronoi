@@ -76,7 +76,7 @@ class HalfEdge {
 
 	HalfEdge(Cell* cell, Point* source) : cell(cell), source(source) {}
 	Line getLine() {
-		return Line(source, twin->source);
+		return Line(source->x, source->y, twin->source->x, twin->source->y);
 	}
 	bool onEdge(const Point& p) {
 		return true;
@@ -84,28 +84,31 @@ class HalfEdge {
 };
 
 class HalfEdgePtr {
-	private:
-		const bool clockwise;
-		Cell* cell;
-		Point cp;
+	
 	public:
+		Cell* cell;
+		std::unique_ptr< Point > cp;
+
 		HalfEdgePtr(Cell* cell, bool clockwise) : cell(cell), clockwise(clockwise) {}
-		void intersection(const Line& seam, std::unique_ptr< Point > last) {
-			if (curr->head != nullptr) {
+		void intersection(const Line& seam, const std::unique_ptr< Point >& last) {
+			if (cell->head != nullptr) {
 				auto curr = cell->head;
 				do {
 					auto p = curr->getLine().intersection(seam);
 					if (p != nullptr) {
 						int cmpY = last == nullptr ? -1 : fuzzyCompare(p->y, last->y);
-						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && curr->onEdge(p)) {
-							cp = p;
+						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && curr->onEdge(*p)) {
+							cp = std::move(p);
 							return;
-						} 
+						}
 					}
 					curr = curr->next;
-				} while (curr != head);
+				} while (curr != cell->head);
 			}
 		}
+	private:
+		const bool clockwise;
+		
 };
 
 class PolyNode {
