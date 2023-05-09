@@ -71,11 +71,12 @@ std::pair< PolyNode*, PolyNode* > findRightChain(Point* p, PolyNode* right) {
 	return chain;
 }
 
-PolyNode* merge(PolyNode* left, PolyNode* right) {
+std::pair< PolyNode*, std::pair< Point*, Point* > > merge(PolyNode* left, PolyNode* right) {
 	auto chain = findRightChain(left->p, right);
 	PolyNode* l = left->next == left ? nullptr : left->next;
 	PolyNode* r = chain.first;
 	std::vector< PolyNode* > m;
+	size_t low = 0, up = 0;
 	m.emplace_back(left);
 	while (l != nullptr || r != nullptr) {
 		PolyNode* curr;
@@ -92,18 +93,38 @@ PolyNode* merge(PolyNode* left, PolyNode* right) {
 			m.pop_back();
 		}
 
+		if (m[m.size() - 1]->next != curr) {
+			if (rside) {
+				low = m.size() - 1;
+			} else {
+				up = m.size() - 1;
+			}
+		}
         m.emplace_back(curr);
 	}
 
 	if (m.size() > 2 && Point::orientation(m[m.size() - 2]->p, m[m.size() - 1]->p, m[0]->p) <= 0) { // может быть только == 0
 		m.pop_back();
 	}
-
-	for (size_t i = 0; i < m.size(); ++i) {
-		m[i]->prev = m[i == 0 ? m.size() - 1 : i - 1];
-		m[i]->next = m[(i + 1) % m.size()];
+	if (m[m.size() - 1]->next != m[0]) {
+		up = m.size() - 1;
 	}
-	return m[0]; // left
+
+	size_t up2 = (up + 1) % m.size();
+	std::pair< Point*, Point* > bridge = std::make_pair(m[up]->p, m[up2]->p);
+	if (Point::orientation(m[up]->p, m[up]->next->p, m[up2]->p) == 0) {
+		bridge.first = m[up]->next->p;
+	}
+	if (Point::orientation(m[up2]->p, m[up2]->prev->p, m[up]->next->p) == 0) {
+		bridge.second = m[up2]->prev->p;
+	}
+
+	m[low]->next = m[low + 1];
+	m[low + 1]->prev = m[low];
+	m[up]->next = m[up2];
+	m[up2]->prev = m[up];
+
+	return std::make_pair(m[0], bridge); // left
 }
 
 PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t end) {
@@ -115,7 +136,26 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 	auto left = kirkpatrick(points, begin, mid);
 	auto right = kirkpatrick(points, mid, end);
 
-	return merge(left, right);
+	return merge(left, right).first;
+}
+
+void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
+
+}
+
+PolyNode* voronoi(const std::vector< Point* >& points, size_t begin, size_t end) {
+	if (end - begin == 1) {
+		return PolyNode::makeNode(points[begin]);
+	}
+
+	size_t mid = (begin + end) / 2;
+	auto left = voronoi(points, begin, mid);
+	auto right = voronoi(points, mid, end);
+
+	auto merged = merge(left, right);
+	mergeVoronoi(merged.second);
+
+	return merged.first;
 }
 
 int main(int argc, char** argv)
