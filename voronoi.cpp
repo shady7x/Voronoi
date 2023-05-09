@@ -140,7 +140,7 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 }
 
 void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
-
+	std::cout << bridge.first->x << ' ' << bridge.first->y << " | " << bridge.second->x << ' ' << bridge.second->y << std::endl;
 }
 
 PolyNode* voronoi(const std::vector< Point* >& points, size_t begin, size_t end) {
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 		points.emplace_back(new Point(it.first, it.second));
 	}
 
-	auto head = kirkpatrick(points, 0, points.size());
+	auto head = voronoi(points, 0, points.size());
 	
 	VulkanEngine vulkanEngine;
 
