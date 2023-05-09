@@ -4,6 +4,7 @@
 #include <string>
 #include <set>
 #include <cmath>
+#include <memory>
 #include "vulkan_engine.h"
 
 const double EPS = 1e-10;
@@ -16,8 +17,9 @@ int fuzzyCompare(double a, double b) {
 
 class Point {
     public:
-        const double x, y;
-        Point(double x, double y) : x(x), y(y) {}
+	    const double x, y;
+		int value;
+        Point(double x, double y, int value = 0) : x(x), y(y), value(value) {}
         double distSqr(const Point& p) {
             return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
         }
@@ -25,6 +27,85 @@ class Point {
             double s = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
             return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее a b, 0 на линии, 1 левее a b
         }
+};
+
+class Line {
+	public:
+		double a, b, c;
+		
+		Line(double a, double b, double c) : a(a), b(b), c(c) {}
+		Line(double x1, double y1, double x2, double y2) : a(y2 - y1), b(x1 - x2), c(-a * x1 - b * y1) {}
+		bool isParallel(const Line& line) {
+			return fuzzyCompare(a * line.b, line.a * b) == 0;
+		}
+		bool isEqual(const Line& line) {
+			return fuzzyCompare(a * line.b, line.a * b) == 0 
+				&& fuzzyCompare(a * line.c, line.a * c) == 0
+				&& fuzzyCompare(b * line.c, line.b * c) == 0;
+		}
+		std::unique_ptr< Point > intersection(const Line& line) {
+			if (isParallel(line) || isEqual(line)) {
+				return nullptr;
+			}
+			double px = (line.b * c - b * line.c) / (line.a * b - a * line.b);
+        	double py = fuzzyCompare(b, 0) != 0 ? (-c - a * px) / b : (-line.c - line.a * px) / line.b;
+			return std::make_unique< Point >(px, py);
+		}
+		static Line perpendicular(const Point& p1, const Point& p2, const Point& p) {
+			double a = p2.y - p1.y, b = p1.x - p2.x;
+			return Line(b, -a, -b * p.x + a * p.y);
+		}
+};
+
+class HalfEdge;
+
+class Cell : public Point {
+	public:
+		HalfEdge* head = nullptr;
+
+	Cell(double x, double y, int value = 0) : Point(x, y, value) {}
+};
+
+class HalfEdge {
+	public:
+		const Cell* cell;
+		HalfEdge* next;
+		HalfEdge* prev;
+		HalfEdge* twin;
+		Point* source;
+
+	HalfEdge(Cell* cell, Point* source) : cell(cell), source(source) {}
+	Line getLine() {
+		return Line(source, twin->source);
+	}
+	bool onEdge(const Point& p) {
+		return true;
+	}
+};
+
+class HalfEdgePtr {
+	private:
+		const bool clockwise;
+		Cell* cell;
+		Point cp;
+	public:
+		HalfEdgePtr(Cell* cell, bool clockwise) : cell(cell), clockwise(clockwise) {}
+		void intersection(const Line& seam, std::unique_ptr< Point > last) {
+			if (curr->head != nullptr) {
+				auto curr = cell->head;
+				do {
+					auto p = curr->getLine().intersection(seam);
+					if (p != nullptr) {
+						int cmpY = last == nullptr ? -1 : fuzzyCompare(p->y, last->y);
+						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && curr->onEdge(p)) {
+							cp = p;
+							return;
+						} 
+					}
+					curr = curr->next;
+				} while (curr != head);
+			}
+		}
 };
 
 class PolyNode {
@@ -140,17 +221,31 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 }
 
 void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
-	std::cout << bridge.first->x << ' ' << bridge.first->y << " | " << bridge.second->x << ' ' << bridge.second->y << std::endl;
+	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
+	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
+	std::unique_ptr< Point > lastP = nullptr;
+	Point mid{ (left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2};
+	while (true) {
+		Line seam = Line::perpendicular(*left.cell, *right.cell, mid);
+		left.intersection(seam, lastP);
+		right.intersection(seam, lastP);
+		if (left.cp == nullptr && right.cp == nullptr) {
+			// TODO generate edge
+			break;
+		}
+		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
+		// TODO generate edge
+	}
 }
 
-PolyNode* voronoi(const std::vector< Point* >& points, size_t begin, size_t end) {
+PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	if (end - begin == 1) {
-		return PolyNode::makeNode(points[begin]);
+		return PolyNode::makeNode(cells[begin]);
 	}
 
 	size_t mid = (begin + end) / 2;
-	auto left = voronoi(points, begin, mid);
-	auto right = voronoi(points, mid, end);
+	auto left = voronoi(cells, begin, mid);
+	auto right = voronoi(cells, mid, end);
 
 	auto merged = merge(left, right);
 	mergeVoronoi(merged.second);
@@ -162,7 +257,7 @@ int main(int argc, char** argv)
 {
 	int n;
 	std::set < std::pair < int, int > > v;
-	std::vector < Point* > points;
+	std::vector < Cell* > cells;
 	int x, y;
 
 	std::cin >> n;
@@ -172,10 +267,10 @@ int main(int argc, char** argv)
 	}
 
 	for (const auto& it : v) {
-		points.emplace_back(new Point(it.first, it.second));
+		cells.emplace_back(new Cell(it.first, it.second));
 	}
 
-	auto head = voronoi(points, 0, points.size());
+	auto head = voronoi(cells, 0, cells.size());
 	
 	VulkanEngine vulkanEngine;
 
