@@ -259,16 +259,8 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 
 int main(int argc, char** argv)
 {
-
-	PerlinNoise2D perlin(0);
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			std::cout << i << ' ' << j << std::endl;
-			std::cout << perlin.noise(i + 0.5, j + 0.5, 1) << std::endl;
-			std::cout << std::endl;
-		}
-	}
-
+	// 1683966317
+	PerlinNoise2D::generateImage(256, 256, 40, 1683966317);
 
 	// int n;
 	// std::set < std::pair < int, int > > v;
