@@ -6,6 +6,7 @@
 #include <cmath>
 #include <memory>
 #include "vulkan_engine.h"
+#include "perlin_noise_2d.h"
 
 const double EPS = 1e-10;
 
@@ -17,15 +18,12 @@ int fuzzyCompare(double a, double b) {
 
 class Point {
     public:
-	    double x, y;
+	    const double x, y;
 		int value;
         Point(double x, double y, int value = 0) : x(x), y(y), value(value) {}
         double distSqr(const Point& p) {
             return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
         }
-		bool fuzzyEquals(const Point* p) {
-			return p != nullptr && fuzzyCompare(x, p->x) == 0 && fuzzyCompare(y, p->y) == 0;
-		}
         static int orientation(Point* a, Point* b, Point* c) {
             double s = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
             return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее a b, 0 на линии, 1 левее a b
@@ -46,13 +44,13 @@ class Line {
 				&& fuzzyCompare(a * line.c, line.a * c) == 0
 				&& fuzzyCompare(b * line.c, line.b * c) == 0;
 		}
-		Point* intersection(const Line& line) {
+		std::unique_ptr< Point > intersection(const Line& line) {
 			if (isParallel(line) || isEqual(line)) {
 				return nullptr;
 			}
 			double px = (line.b * c - b * line.c) / (line.a * b - a * line.b);
         	double py = fuzzyCompare(b, 0) != 0 ? (-c - a * px) / b : (-line.c - line.a * px) / line.b;
-			return new Point(px, py);
+			return std::make_unique< Point >(px, py);
 		}
 		static Line perpendicular(const Point& p1, const Point& p2, const Point& p) {
 			double a = p2.y - p1.y, b = p1.x - p2.x;
@@ -71,118 +69,47 @@ class Cell : public Point {
 
 class HalfEdge {
 	public:
-		Cell* cell;
-		HalfEdge* next = nullptr;
-		HalfEdge* prev = nullptr;
-		HalfEdge* twin = nullptr;
-
-		Point* getStart() {
-			return source->value == 0 ? source : nullptr;
-		}
-		Point* getEnd() {
-			return source->value == 0 ? twin->source : nullptr;
-		}
-		void setStart(Point* p) {
-			if (twin->source->value == -2) {
-				twin->source->x = -source->x;
-				twin->source->y = -source->y;
-				twin->source->value = -1;
-			}
-			source = p;
-		}
-		void setEnd(Point* p) {
-			if (source->value == -2) {
-				source->x = -twin->source->x;
-				source->y = -twin->source->y;
-				source->value = -1;
-			}
-			twin->source = p;
-		}
-		Line getLine() {
-			return Line(source->x, source->y, twin->source->x, twin->source->y);
-		}
-		bool onEdge(const Point& p) {
-			return true;
-		}
-		static HalfEdge* createEdge(Point* p1, Point* p2, Line l, Cell* left, Cell* right) {
-			double b = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? abs(l.b): -abs(l.b); //? 4 : 3;
-			if (p1 == nullptr) {
-				p1 = new Point(-b, abs(l.a), -1);
-				if (p2 == nullptr) {
-					p2 = new Point((left->x + right->x) / 2, (left->y + right->y) / 2, -2);
-				}
-			} else if (p2 == nullptr) {
-				p2 = new Point(b, -abs(l.a), -1);
-			}
-			HalfEdge* leftEdge = new HalfEdge(p1, left);
-			HalfEdge* rightEdge = new HalfEdge(p2, right);
-			leftEdge->twin = rightEdge;
-			rightEdge->twin = leftEdge;
-			leftEdge->next = leftEdge->prev = leftEdge;
-			rightEdge->next = rightEdge->prev = rightEdge;
-			return leftEdge;
-		}
-	private:
+		const Cell* cell;
+		HalfEdge* next;
+		HalfEdge* prev;
+		HalfEdge* twin;
 		Point* source;
-		HalfEdge(Point* source, Cell* cell) : source(source), cell(cell) {}
+
+	HalfEdge(Cell* cell, Point* source) : cell(cell), source(source) {}
+	Line getLine() {
+		return Line(source->x, source->y, twin->source->x, twin->source->y);
+	}
+	bool onEdge(const Point& p) {
+		return true;
+	}
 };
 
 class HalfEdgePtr {
 	
 	public:
 		Cell* cell;
-		Point* cp;
-		HalfEdge* edge;
-		HalfEdge* top = nullptr;
-		bool headSkipped;
+		std::unique_ptr< Point > cp;
 
-		HalfEdgePtr(Cell* cell, bool clockwise) : cell(cell), edge(cell->head), headSkipped(false), clockwise(clockwise) {}
-		void intersection(const Line& seam, const Point* last) {
+		HalfEdgePtr(Cell* cell, bool clockwise) : cell(cell), clockwise(clockwise) {}
+		void intersection(const Line& seam, const std::unique_ptr< Point >& last) {
 			if (cell->head != nullptr) {
-				HalfEdge* start = edge;
+				auto curr = cell->head;
 				do {
-					auto p = edge->getLine().intersection(seam);
+					auto p = curr->getLine().intersection(seam);
 					if (p != nullptr) {
 						int cmpY = last == nullptr ? -1 : fuzzyCompare(p->y, last->y);
-						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && edge->onEdge(*p)) {
-							int eq = p->fuzzyEquals(edge->getStart()) ? -1 : (p->fuzzyEquals(edge->getEnd()) ? 1 : 0);
-							if (eq == 0) {
-								cp = p;
-							} else if (eq == -1) {
-								cp = edge->getStart();
-								if (clockwise) move();
-								delete p;
-							} else {
-								cp = edge->getEnd();
-								if (!clockwise) move();
-								delete p;
-							}
+						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && curr->onEdge(*p)) {
+							cp = std::move(p);
 							return;
-						} else {
-							delete p;
 						}
 					}
-					move();
-				} while (edge != start);
+					curr = curr->next;
+				} while (curr != cell->head);
 			}
-		}
-		void set(HalfEdge* newEdge) {
-			cell = newEdge->cell;
-			top = edge = newEdge;
-			cp = nullptr;
-			headSkipped = false;
 		}
 	private:
 		const bool clockwise;
-		void move() {
-			if (clockwise) {
-				headSkipped = headSkipped || edge == cell->head;
-				edge = edge->prev;
-			} else {
-				edge = edge->next;
-				headSkipped = headSkipped || edge == cell->head;
-			}
-		}
+		
 };
 
 class PolyNode {
@@ -297,65 +224,21 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 	return merge(left, right).first;
 }
 
-HalfEdge* addChainLink(HalfEdge* edge, HalfEdge* head, bool inHead) {
-	if (head == nullptr) {
-		return edge->next = edge->prev = edge;
-	}
-	edge->next = head;
-	edge->prev = head->prev;
-	head->prev->next = edge;
-	head->prev = edge;
-	return inHead ? edge : head;
-}
-
 void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
 	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
-	Point* lastP = nullptr;
-	std::unique_ptr< Point > mid = std::make_unique< Point >((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2);
-	HalfEdge* leftChain = nullptr;
-	HalfEdge* rightChain = nullptr;
+	std::unique_ptr< Point > lastP = nullptr;
+	Point mid{ (left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2};
 	while (true) {
-		Line seam = Line::perpendicular(*left.cell, *right.cell, *mid);
+		Line seam = Line::perpendicular(*left.cell, *right.cell, mid);
 		left.intersection(seam, lastP);
 		right.intersection(seam, lastP);
 		if (left.cp == nullptr && right.cp == nullptr) {
-			HalfEdge* halfedge = HalfEdge::createEdge(nullptr, lastP, seam, left.cell, right.cell);
-			leftChain = addChainLink(halfedge, leftChain, true);
-			rightChain = addChainLink(halfedge->twin, rightChain, false);
-			// TODO connect chain
-			// TODO connect chain
+			// TODO generate edge
 			break;
 		}
 		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
-		Point* point = cmp <= 0 ? left.cp : right.cp;
-		HalfEdge* halfedge = HalfEdge::createEdge(point, lastP, seam, left.cell, right.cell);
-		leftChain = addChainLink(halfedge, leftChain, true);
-		rightChain = addChainLink(halfedge->twin, rightChain, false);
-		mid = std::make_unique< Point >(point->x, point->y);
-		lastP = point;
-		if (cmp <= 0) {
-			HalfEdge* intersectTwin = point->fuzzyEquals(left.edge->getEnd()) ? left.edge->next->twin->next : left.edge->twin;
-			left.edge->setEnd(point);
-			intersectTwin->setStart(point); 
-			// TODO connect chain
-			left.set(intersectTwin);
-			leftChain = nullptr;
-		}
-		if (cmp >= 0) {
-			HalfEdge* intersectTwin = halfedge->twin;
-			if (point->fuzzyEquals(right.edge->getStart())) {
-				while (right.edge->prev->twin->prev != intersectTwin) {
-					intersectTwin->setEnd(point);
-					intersectTwin = intersectTwin->next->twin;
-				}
-			}
-			right.edge->setStart(point);
-			intersectTwin->setEnd(point);
-			// TODO connect chain
-			right.set(intersectTwin);
-			rightChain = nullptr;
-		}
+		// TODO generate edge
 	}
 }
 
@@ -376,52 +259,63 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 
 int main(int argc, char** argv)
 {
-	int n;
-	std::set < std::pair < int, int > > v;
-	std::vector < Cell* > cells;
-	int x, y;
 
-	std::cin >> n;
-	for (int i = 0; i < n; ++i) {
-		std::cin >> x >> y;
-		v.emplace(x, y);
+	PerlinNoise2D perlin(0);
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			std::cout << i << ' ' << j << std::endl;
+			std::cout << perlin.noise(i + 0.5, j + 0.5, 1) << std::endl;
+			std::cout << std::endl;
+		}
 	}
 
-	for (const auto& it : v) {
-		cells.emplace_back(new Cell(it.first, it.second));
-	}
 
-	auto head = voronoi(cells, 0, cells.size());
+	// int n;
+	// std::set < std::pair < int, int > > v;
+	// std::vector < Cell* > cells;
+	// int x, y;
+
+	// std::cin >> n;
+	// for (int i = 0; i < n; ++i) {
+	// 	std::cin >> x >> y;
+	// 	v.emplace(x, y);
+	// }
+
+	// for (const auto& it : v) {
+	// 	cells.emplace_back(new Cell(it.first, it.second));
+	// }
+
+	// auto head = voronoi(cells, 0, cells.size());
 	
-	VulkanEngine vulkanEngine;
+	// VulkanEngine vulkanEngine;
 
-	std::vector< Vertex > vrtx;
+	// std::vector< Vertex > vrtx;
 
-	Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-	auto curr = head->next;
-	while (curr->next != head) {
-		Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-		Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-		vrtx.emplace_back(a);
-		vrtx.emplace_back(b);
-		vrtx.emplace_back(c);
-		curr = curr->next;
-	}
+	// Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+	// auto curr = head->next;
+	// while (curr->next != head) {
+	// 	Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+	// 	Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
+	// 	vrtx.emplace_back(a);
+	// 	vrtx.emplace_back(b);
+	// 	vrtx.emplace_back(c);
+	// 	curr = curr->next;
+	// }
 
-	vulkanEngine.v = vrtx;
+	// vulkanEngine.v = vrtx;
 
-	for (size_t i = 0; i < vrtx.size(); i += 3) {
-		std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
-		std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
-		std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
-	}
+	// for (size_t i = 0; i < vrtx.size(); i += 3) {
+	// 	std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
+	// 	std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
+	// 	std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
+	// }
 
-    try {
-        vulkanEngine.run();
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+    // try {
+    //     vulkanEngine.run();
+    // } catch (const std::exception& e) {
+    //     std::cerr << e.what() << std::endl;
+    //     return EXIT_FAILURE;
+    // }
 
 	return 0;
 }
