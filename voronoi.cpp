@@ -341,7 +341,43 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 
 
 void connectChain(std::shared_ptr< HalfEdge > first, std::shared_ptr< HalfEdge > chainStart, std::shared_ptr< HalfEdge > second, bool headSkipped) {
-	
+	Cell* cell = chainStart->cell;
+	auto chainEnd = chainStart->prev;
+	if (first != nullptr && second != nullptr) {
+		if (cell->head != cell->head->prev
+				&& cell->head->next == cell->head->prev
+				&& cell->head->prev->next == cell->head
+				&& cell->head->getLine().isParallel(cell->head->prev->getLine())) {
+			if (cell->head->getStart() != nullptr) {
+				cell->head = cell->head->prev;
+			}
+			headSkipped = false;
+		}
+		first->next = chainStart;
+		chainStart->prev = first;
+		second->prev = chainEnd;
+		chainEnd->next = second;
+		if (headSkipped) {
+			cell->head = chainStart;
+		}
+	} else if (first == nullptr && second == nullptr) {
+		if (cell->head != nullptr) {
+			cell->head->prev = cell->head->next = chainStart;
+			chainStart->prev = chainStart->next = cell->head;
+		}
+		cell->head = chainStart;
+	} else if (first == nullptr) {
+		cell->head->prev->next = chainStart;
+		chainStart->prev = cell->head->prev;
+		second->prev = chainEnd;
+		chainEnd->next = second;
+		cell->head = chainStart;
+	} else {
+		first->next = chainStart;
+		chainStart->prev = first;
+		cell->head->prev = chainEnd;
+		chainEnd->next = cell->head;
+	}
 }
 
 std::shared_ptr< HalfEdge > addChainLink(std::shared_ptr< HalfEdge > edge, std::shared_ptr< HalfEdge > head, bool inHead) {
