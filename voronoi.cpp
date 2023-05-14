@@ -43,6 +43,13 @@ class Cell : public Point {
 		std::shared_ptr< HalfEdge > head = nullptr;
 
 	Cell(double x, double y, int value = 0) : Point(x, y, value) {}
+
+	~Cell() {
+		if (head != nullptr) {
+			head->prev->next = head->prev = nullptr;
+			head = nullptr;
+		}
+	}
 };
 
 class Line {
