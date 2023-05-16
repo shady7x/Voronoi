@@ -137,7 +137,6 @@ class HalfEdge {
 		}
 
 	private:
-		
 		Point* source;
 		
 };
@@ -230,8 +229,7 @@ class PolyNode {
 
         static PolyNode* makeNode(Point* p) {
             auto node = new PolyNode(p);
-            node->next = node->prev = node;
-            return node;
+            return node->next = node->prev = node;
         }
 
     private:
@@ -338,14 +336,11 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped) {
 	Cell* cell = chainStart->cell;
 	auto chainEnd = chainStart->prev;
-	auto headPrev = cell->head->prev;
-
-
 	if (first != nullptr && second != nullptr) {
-		if (cell->head != headPrev && cell->head->next == headPrev
-				&& headPrev->next == cell->head && cell->head->getLine().isParallel(headPrev->getLine())) {
+		if (cell->head != cell->head->prev && cell->head->next == cell->head->prev
+				&& cell->head->prev->next == cell->head && cell->head->getLine().isParallel(cell->head->prev->getLine())) {
 			if (cell->head->getStart() != nullptr) {
-				cell->head = headPrev;
+				cell->head = cell->head->prev;
 			}
 			headSkipped = false;
 		}
@@ -358,20 +353,20 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 		}
 	} else if (first == nullptr && second == nullptr) {
 		if (cell->head != nullptr) {
-			headPrev = cell->head->next = chainStart;
+			cell->head->prev = cell->head->next = chainStart;
 			chainStart->prev = chainStart->next = cell->head;
 		}
 		cell->head = chainStart;
 	} else if (first == nullptr) {
-		headPrev->next = chainStart;
-		chainStart->prev = headPrev;
+		cell->head->prev->next = chainStart;
+		chainStart->prev = cell->head->prev;
 		second->prev = chainEnd;
 		chainEnd->next = second;
 		cell->head = chainStart;
 	} else {
 		first->next = chainStart;
 		chainStart->prev = first;
-		headPrev = chainEnd;
+		cell->head->prev = chainEnd;
 		chainEnd->next = cell->head;
 	}
 }
@@ -390,6 +385,7 @@ HalfEdge* addChainLink(HalfEdge* edge, HalfEdge* head, bool inHead) {
 void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
 	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
+	std::vector< HalfEdge* > edgesForDelete;
 	Point mid{ (left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2};
 	Point* lastP = nullptr;
 	HalfEdge* leftChain = nullptr;
