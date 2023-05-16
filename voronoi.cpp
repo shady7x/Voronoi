@@ -329,16 +329,21 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 }
 
 
-void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped) {
+void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped, std::vector< HalfEdge* >& edgesForDelete) {
 	Cell* cell = chainStart->cell;
 	auto chainEnd = chainStart->prev;
-	if (first != nullptr && second != nullptr) { // два пересечения
-		if (cell->head != cell->head->prev && cell->head->next == cell->head->prev
-				&& cell->head->getLine().isParallel(cell->head->prev->getLine())) { // две параллельные прямые
+	if (first != nullptr && second != nullptr) { // Два пересечения
+		if (cell->head != cell->head->next && cell->head->next == cell->head->prev && cell->head->getLine().isParallel(cell->head->next->getLine())) { // Две параллельные прямые
 			if (cell->head->getStart() != nullptr) { 
-				cell->head = cell->head->prev;
+				cell->head = cell->head->next;
 			}
 			headSkipped = false;
+		} else { // Отрезаем кусок ячейки
+			auto curr = first->next;
+			while (curr != second) {
+				edgesForDelete.emplace_back(curr);
+				curr = curr->next;
+			}
 		}
 		first->next = chainStart; //edges for delete
 		chainStart->prev = first;
@@ -347,8 +352,8 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 		if (headSkipped) {
 			cell->head = chainStart;
 		}
-	} else if (first == nullptr && second == nullptr) { // пересечения нет
-		if (cell->head != nullptr) { // одна прямая
+	} else if (first == nullptr && second == nullptr) { // Пересечения нет
+ 		if (cell->head != nullptr) { // одна прямая
 			cell->head->prev = cell->head->next = chainStart;
 			chainStart->prev = chainStart->next = cell->head;
 		}
