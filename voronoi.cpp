@@ -153,10 +153,8 @@ HalfEdge* createEdge(Point* p1, Point* p2, const Line& l, Cell* left, Cell* righ
 	}
 	auto leftEdge = new HalfEdge(p1, left);
 	auto rightEdge = new HalfEdge(p2, right);
-	leftEdge->twin = rightEdge;
-	rightEdge->twin = leftEdge;
-	leftEdge->prev = leftEdge->next = leftEdge;
-	rightEdge->prev = rightEdge->next = rightEdge;
+	rightEdge->prev = rightEdge->next = leftEdge->twin = rightEdge;
+	leftEdge->prev = leftEdge->next = rightEdge->twin = leftEdge;
 	return leftEdge;
 }
 
@@ -324,11 +322,9 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 	if (end - begin == 1) {
 		return PolyNode::makeNode(points[begin]);
 	}
-
 	size_t mid = (begin + end) / 2;
 	auto left = kirkpatrick(points, begin, mid);
 	auto right = kirkpatrick(points, mid, end);
-
 	return merge(left, right).first;
 }
 
@@ -336,28 +332,28 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped) {
 	Cell* cell = chainStart->cell;
 	auto chainEnd = chainStart->prev;
-	if (first != nullptr && second != nullptr) {
+	if (first != nullptr && second != nullptr) { // два пересечения
 		if (cell->head != cell->head->prev && cell->head->next == cell->head->prev
-				&& cell->head->prev->next == cell->head && cell->head->getLine().isParallel(cell->head->prev->getLine())) {
-			if (cell->head->getStart() != nullptr) {
+				&& cell->head->getLine().isParallel(cell->head->prev->getLine())) { // две параллельные прямые
+			if (cell->head->getStart() != nullptr) { 
 				cell->head = cell->head->prev;
 			}
 			headSkipped = false;
 		}
-		first->next = chainStart;
+		first->next = chainStart; //edges for delete
 		chainStart->prev = first;
 		second->prev = chainEnd;
 		chainEnd->next = second;
 		if (headSkipped) {
 			cell->head = chainStart;
 		}
-	} else if (first == nullptr && second == nullptr) {
-		if (cell->head != nullptr) {
+	} else if (first == nullptr && second == nullptr) { // пересечения нет
+		if (cell->head != nullptr) { // одна прямая
 			cell->head->prev = cell->head->next = chainStart;
 			chainStart->prev = chainStart->next = cell->head;
 		}
 		cell->head = chainStart;
-	} else if (first == nullptr) {
+	} else if (first == nullptr) { 
 		cell->head->prev->next = chainStart;
 		chainStart->prev = cell->head->prev;
 		second->prev = chainEnd;
@@ -373,8 +369,7 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 
 HalfEdge* addChainLink(HalfEdge* edge, HalfEdge* head, bool inHead) {
     if (head == nullptr) {
-		edge->prev = edge->next = edge;
-		return edge;
+		return edge->prev = edge->next = edge;
 	}
 	edge->next = head;
 	edge->prev = head->prev;
@@ -404,7 +399,6 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 		}
 		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
 		Point* point = cmp <= 0 ? left.cp : right.cp;
-
 		auto edge = createEdge(point, lastP, seam, left.cell, right.cell);
 		leftChain = addChainLink(edge, leftChain, true);
 		rightChain = addChainLink(edge->twin, rightChain, false);
