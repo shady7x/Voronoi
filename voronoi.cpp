@@ -31,7 +31,7 @@ class Point {
             return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее a b, 0 на линии, 1 левее a b
         }
 
-		bool fuzzyEquals(Point* other) {
+		bool fuzzyEquals(const Point* other) {
         	return other != nullptr && fuzzyCompare(x, other->x) == 0 && fuzzyCompare(y, other->y) == 0;
 		}
 };
@@ -63,13 +63,13 @@ class Line {
 				&& fuzzyCompare(b * line.c, line.b * c) == 0;
 		}
 		
-		Point* intersection(const Line& line) {
+		std::shared_ptr< Point > intersection(const Line& line) {
 			if (isParallel(line) || isEqual(line)) {
 				return nullptr;
 			}
 			double px = (line.b * c - b * line.c) / (line.a * b - a * line.b);
         	double py = fuzzyCompare(b, 0) != 0 ? (-c - a * px) / b : (-line.c - line.a * px) / line.b;
-			return new Point(px, py);
+			return std::make_shared< Point >(px, py);
 		}
 		
 		static Line perpendicular(const Point& p1, const Point& p2, const Point& p) {
@@ -85,17 +85,17 @@ class HalfEdge {
 		HalfEdge* prev;
 		HalfEdge* twin;
 
-		HalfEdge(Point* source, Cell* cell) : source(source), cell(cell) {}
+		HalfEdge(std::shared_ptr< Point > source, Cell* cell) : source(source), cell(cell) {}
 
-		Point* getStart() {
+		std::shared_ptr< Point > getStart() {
         	return source->value == 0 ? source : nullptr;
     	}
 
-    	Point* getEnd() {
+    	std::shared_ptr< Point > getEnd() {
         	return twin->source->value == 0 ? twin->source : nullptr;
     	}
 
-		void setStart(Point* p) {
+		void setStart(std::shared_ptr< Point > p) {
 			if (twin->source->value == -2) {
 				twin->source->x = -source->x;
 				twin->source->y = -source->y;
@@ -104,7 +104,7 @@ class HalfEdge {
 			source = p;
 		}
 
-		void setEnd(Point* p) {
+		void setEnd(std::shared_ptr< Point > p) {
 			if (source->value == -2) {
 				source->x = -twin->source->x;
 				source->y = -twin->source->y;
@@ -137,19 +137,19 @@ class HalfEdge {
 		}
 
 	private:
-		Point* source;
+		std::shared_ptr< Point > source;
 		
 };
 
-HalfEdge* createEdge(Point* p1, Point* p2, const Line& l, Cell* left, Cell* right) {
-	double b = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? std::abs(l.b): -std::abs(l.b); //? 4 : 3;
+HalfEdge* createEdge(std::shared_ptr< Point > p1, std::shared_ptr< Point > p2, const Line& l, Cell* left, Cell* right) {
+	double b = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? abs(l.b): -abs(l.b); //? 4 : 3;
 	if (p1 == nullptr) {
-		p1 = new Point(-b, abs(l.a), -1);
+		p1 = std::make_shared< Point >(-b, abs(l.a), -1);
 		if (p2 == nullptr) {
-			p2 = new Point((left->x + right->x) / 2, (left->y + right->y) / 2, -2);
+			p2 = std::make_shared< Point >((left->x + right->x) / 2, (left->y + right->y) / 2, -2);
 		}
 	} else if (p2 == nullptr) {
-		p2 = new Point(b, -std::abs(l.a), -1);
+		p2 = std::make_shared< Point >(b, -abs(l.a), -1);
 	}
 	auto leftEdge = new HalfEdge(p1, left);
 	auto rightEdge = new HalfEdge(p2, right);
@@ -162,7 +162,7 @@ class HalfEdgePtr {
 	
 	public:
 		Cell* cell;
-		Point* cp = nullptr;
+		std::shared_ptr< Point > cp = nullptr;
 		HalfEdge* top = nullptr;
 		HalfEdge* edge;
 		bool headSkipped = false;
@@ -176,7 +176,7 @@ class HalfEdgePtr {
 			headSkipped = false;
 		}
 
-		void intersection(const Line& seam, Point* last) {
+		void intersection(const Line& seam, std::shared_ptr< Point > last) {
 			if (edge != nullptr) {
 				auto start = edge;
 				do {
@@ -184,21 +184,17 @@ class HalfEdgePtr {
 					if (p != nullptr) {
 						int cmpY = last == nullptr ? -1 : fuzzyCompare(p->y, last->y);
 						if ((cmpY < 0 || (cmpY == 0 && fuzzyCompare(p->x, last->x) > 0)) && edge->onEdge(*p)) {
-							int eq = p->fuzzyEquals(edge->getStart()) ? -1 : (p->fuzzyEquals(edge->getEnd()) ? 1 : 0);
+							int eq = p->fuzzyEquals(edge->getStart().get()) ? -1 : (p->fuzzyEquals(edge->getEnd().get()) ? 1 : 0);
                             if (eq == 0) {
                                 cp = p;
                             } else if (eq == -1) {
                                 cp = edge->getStart();
-								delete p;
                                 if (clockwise) move();
                             } else {
                                 cp = edge->getEnd();
-								delete p;
                                 if (!clockwise) move();
                             }
                             return;
-						} else {
-							delete p;
 						}
 					}
 					move();
@@ -335,7 +331,6 @@ void markEdgesForDeletion(HalfEdge* curr, HalfEdge* finish, std::vector< HalfEdg
 	}
 }
 
-
 void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped, std::vector< HalfEdge* >& deletion) {
 	Cell* cell = chainStart->cell;
 	auto chainEnd = chainStart->prev;
@@ -391,12 +386,11 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
 	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
 	std::vector< HalfEdge* > deletion;
-	Point mid{ (left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2};
-	Point* lastP = nullptr;
+	std::shared_ptr< Point >  mid = std::make_shared< Point > ((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2), lastP = nullptr;
 	HalfEdge* leftChain = nullptr;
 	HalfEdge* rightChain = nullptr;
 	while (true) {
-		Line seam = Line::perpendicular(*left.cell, *right.cell, mid);
+		Line seam = Line::perpendicular(*left.cell, *right.cell, *mid);
 		left.intersection(seam, lastP);
 		right.intersection(seam, lastP);
 		if (left.cp == nullptr && right.cp == nullptr) {
@@ -408,14 +402,13 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			break;
 		}
 		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
-		Point* point = cmp <= 0 ? left.cp : right.cp;
+		std::shared_ptr< Point > point = cmp <= 0 ? left.cp : right.cp;
 		auto edge = createEdge(point, lastP, seam, left.cell, right.cell);
 		leftChain = addChainLink(edge, leftChain, true);
 		rightChain = addChainLink(edge->twin, rightChain, false);
-		mid = Point(point->x, point->y);
-		lastP = point;
+		mid = lastP = point;
 		if (cmp <= 0) {
-			auto intersectTwin = point->fuzzyEquals(left.edge->getEnd()) ? left.edge->next->twin->next : left.edge->twin;
+			auto intersectTwin = point->fuzzyEquals(left.edge->getEnd().get()) ? left.edge->next->twin->next : left.edge->twin;
 			left.edge->setEnd(point);
 			intersectTwin->setStart(point);
 			connectChain(left.edge, leftChain, left.top, left.headSkipped, deletion);
@@ -424,7 +417,7 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 		}
 		if (cmp >= 0) {
 			auto intersectTwin = right.edge->twin;
-			if (point->fuzzyEquals(right.edge->getStart())) {
+			if (point->fuzzyEquals(right.edge->getStart().get())) {
 				while (right.edge->prev->twin->prev != intersectTwin) {
 					intersectTwin->setEnd(point);
 					intersectTwin = intersectTwin->next->twin;
