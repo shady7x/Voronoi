@@ -328,8 +328,15 @@ PolyNode* kirkpatrick(const std::vector< Point* >& points, size_t begin, size_t 
 	return merge(left, right).first;
 }
 
+void markEdgesForDeletion(HalfEdge* curr, HalfEdge* finish, std::vector< HalfEdge* >& deletion) {
+	while (curr != finish) {
+		deletion.emplace_back(curr);
+		curr = curr->next;
+	}
+}
 
-void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped, std::vector< HalfEdge* >& edgesForDelete) {
+
+void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool headSkipped, std::vector< HalfEdge* >& deletion) {
 	Cell* cell = chainStart->cell;
 	auto chainEnd = chainStart->prev;
 	if (first != nullptr && second != nullptr) { // Два пересечения
@@ -339,11 +346,7 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 			}
 			headSkipped = false;
 		} else { // Отрезаем кусок ячейки
-			auto curr = first->next;
-			while (curr != second) {
-				edgesForDelete.emplace_back(curr);
-				curr = curr->next;
-			}
+			markEdgesForDeletion(first->next, second, deletion);
 		}
 		first->next = chainStart; //edges for delete
 		chainStart->prev = first;
@@ -359,12 +362,14 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 		}
 		cell->head = chainStart;
 	} else if (first == nullptr) { 
+		markEdgesForDeletion(cell->head->prev->next, second, deletion);
 		cell->head->prev->next = chainStart;
 		chainStart->prev = cell->head->prev;
 		second->prev = chainEnd;
 		chainEnd->next = second;
 		cell->head = chainStart;
 	} else {
+		markEdgesForDeletion(first->next, cell->head->prev, deletion);
 		first->next = chainStart;
 		chainStart->prev = first;
 		cell->head->prev = chainEnd;
@@ -385,7 +390,7 @@ HalfEdge* addChainLink(HalfEdge* edge, HalfEdge* head, bool inHead) {
 void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
 	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
-	std::vector< HalfEdge* > edgesForDelete;
+	std::vector< HalfEdge* > deletion;
 	Point mid{ (left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2};
 	Point* lastP = nullptr;
 	HalfEdge* leftChain = nullptr;
@@ -398,8 +403,8 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			auto edge = createEdge(nullptr, lastP, seam, left.cell, right.cell);
         	leftChain = addChainLink(edge, leftChain, true);
             rightChain = addChainLink(edge->twin, rightChain, false);
-            connectChain(nullptr, leftChain, left.top, left.headSkipped);
-            connectChain(right.top, rightChain, nullptr, right.headSkipped);
+            connectChain(nullptr, leftChain, left.top, left.headSkipped, deletion);
+            connectChain(right.top, rightChain, nullptr, right.headSkipped, deletion);
 			break;
 		}
 		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
@@ -413,7 +418,7 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			auto intersectTwin = point->fuzzyEquals(left.edge->getEnd()) ? left.edge->next->twin->next : left.edge->twin;
 			left.edge->setEnd(point);
 			intersectTwin->setStart(point);
-			connectChain(left.edge, leftChain, left.top, left.headSkipped);
+			connectChain(left.edge, leftChain, left.top, left.headSkipped, deletion);
 			left.set(intersectTwin);
 			leftChain = nullptr;
 		}
@@ -427,10 +432,13 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			}
 			right.edge->setStart(point);
 			intersectTwin->setEnd(point);
-			connectChain(right.top, rightChain, right.edge, right.headSkipped);
+			connectChain(right.top, rightChain, right.edge, right.headSkipped, deletion);
 			right.set(intersectTwin);
 			rightChain = nullptr;
 		}
+	}
+	for (size_t i = 0; i < deletion.size(); ++i) {
+		delete deletion[i];
 	}
 }
 
