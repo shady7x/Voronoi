@@ -9,7 +9,7 @@ void main() {
     float distY = vk.y / length(vec2(dFdx(vk.y), dFdy(vk.y)));
     float distZ = vk.z / length(vec2(dFdx(vk.z), dFdy(vk.z)));
 
-    if (distX < 4 || distY < 4 || distZ < 4) {
+    if (distX < 3.0 || distY < 3.0 || distZ < 3.0) {
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
     } else {
         outColor = vec4(0.0, 1.0, 0.0, 1.0);
