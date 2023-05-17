@@ -452,52 +452,53 @@ int main(int argc, char** argv)
 	// 1683966317
 	// PerlinNoise2D::generateImage(512, 512, 80, 1683966317);
 
-	// int n;
-	// std::set < std::pair < int, int > > v;
-	// std::vector < Cell* > cells;
-	// int x, y;
+	int n;
+	std::set < std::pair < int, int > > v;
 
-	// std::cin >> n;
-	// for (int i = 0; i < n; ++i) {
-	// 	std::cin >> x >> y;
-	// 	v.emplace(x, y);
-	// }
+	std::vector < Point* > cells;
+	int x, y;
 
-	// for (const auto& it : v) {
-	// 	cells.emplace_back(new Cell(it.first, it.second));
-	// }
+	std::cin >> n;
+	for (int i = 0; i < n; ++i) {
+		std::cin >> x >> y;
+		v.emplace(x, y);
+	}
 
-	// auto head = voronoi(cells, 0, cells.size());
+	for (const auto& it : v) {
+		cells.emplace_back(new Cell(it.first, it.second));
+	}
+
+	auto head = kirkpatrick(cells, 0, cells.size());
 	
-	// VulkanEngine vulkanEngine;
+	VulkanEngine vulkanEngine;
 
-	// std::vector< Vertex > vrtx;
+	std::vector< Vertex > vrtx;
 
-	// Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-	// auto curr = head->next;
-	// while (curr->next != head) {
-	// 	Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-	// 	Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX, static_cast< float >(rand()) / RAND_MAX } };
-	// 	vrtx.emplace_back(a);
-	// 	vrtx.emplace_back(b);
-	// 	vrtx.emplace_back(c);
-	// 	curr = curr->next;
-	// }
+	Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { 1.0f, 0.0f, 0.0f } };
+	auto curr = head->next;
+	while (curr->next != head) {
+		Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { 0.0f, 1.0f, 0.0f } };
+		Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { 0.0f, 0.0f, 1.0f } };
+		vrtx.emplace_back(a);
+		vrtx.emplace_back(b);
+		vrtx.emplace_back(c);
+		curr = curr->next;
+	}
 
-	// vulkanEngine.v = vrtx;
+	vulkanEngine.v = vrtx;
 
-	// for (size_t i = 0; i < vrtx.size(); i += 3) {
-	// 	std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
-	// 	std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
-	// 	std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
-	// }
+	for (size_t i = 0; i < vrtx.size(); i += 3) {
+		std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
+		std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
+		std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
+	}
 
-    // try {
-    //     vulkanEngine.run();
-    // } catch (const std::exception& e) {
-    //     std::cerr << e.what() << std::endl;
-    //     return EXIT_FAILURE;
-    // }
+    try {
+        vulkanEngine.run();
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 
 	return 0;
 }
