@@ -468,10 +468,21 @@ int main(int argc, char** argv)
 		cells.emplace_back(new Cell(it.first, it.second));
 	}
 
-	auto head = voronoi(cells, 0, cells.size());
+	voronoi(cells, 0, cells.size());
+
+
+	for (const auto& cell : cells) {
+		std::cout << "\ncell: " << cell->x << " " << cell->y << std::endl;
+		auto curr = cell->head;
+		do {
+			std::cout << "start: " << curr->getStart()->x << " " << curr->getStart()->y << " " << curr->getStart()->value << std::endl;
+			std::cout << "end: " << curr->getEnd()->x << " " << curr->getEnd()->y << " " << curr->getEnd()->value << std::endl;
+			curr = curr->next;
+		} while (curr != cell->head);
+	}
 	
 	
-	float width2 = 400.0, height2 = 300.0;
+	/*float width2 = 400.0, height2 = 300.0;
 
 	std::vector< Vertex > vrtx;
 	for (size_t i = 0; i < cells.size(); ++i) {
@@ -498,6 +509,6 @@ int main(int argc, char** argv)
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
-    }
+    }*/
 	return 0;
 }
