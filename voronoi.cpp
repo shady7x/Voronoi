@@ -82,7 +82,7 @@ class HalfEdge {
 	public:
 		Cell* cell;
 		HalfEdge* next = nullptr;
-		HalfEdge* prev;
+		HalfEdge* prev = nullptr;
 		HalfEdge* twin;
 
 		HalfEdge(std::shared_ptr< Point > source, Cell* cell) : source(source), cell(cell) {}
@@ -455,7 +455,7 @@ int main(int argc, char** argv)
 	int n;
 	std::set < std::pair < int, int > > v;
 
-	std::vector < Point* > cells;
+	std::vector < Cell* > cells;
 	int x, y;
 
 	std::cin >> n;
@@ -468,37 +468,36 @@ int main(int argc, char** argv)
 		cells.emplace_back(new Cell(it.first, it.second));
 	}
 
-	auto head = kirkpatrick(cells, 0, cells.size());
+	auto head = voronoi(cells, 0, cells.size());
 	
-	VulkanEngine vulkanEngine;
+	
+	float width2 = 400.0, height2 = 300.0;
 
 	std::vector< Vertex > vrtx;
-
-	Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { 1.0f, 0.0f, 0.0f } };
-	auto curr = head->next;
-	while (curr->next != head) {
-		Vertex b = { { (curr->p->x - 3.0) / 5.0, (curr->p->y - 3.0) / 5.0 }, { 0.0f, 1.0f, 0.0f } };
-		Vertex c = { { (curr->next->p->x - 3.0) / 5.0, (curr->next->p->y - 3.0) / 5.0 }, { 0.0f, 0.0f, 1.0f } };
-		vrtx.emplace_back(a);
-		vrtx.emplace_back(b);
-		vrtx.emplace_back(c);
-		curr = curr->next;
+	for (size_t i = 0; i < cells.size(); ++i) {
+		auto curr = cells[i]->head;
+		Vertex a = { { (head->p->x - 3.0) / 5.0, (head->p->y - 3.0) / 5.0 }, { 1.0f, 0.0f, 0.0f } };
+		do {
+			auto start = curr->getStart();
+			auto end = curr->getEnd();
+			if (start != nullptr && end != nullptr) {
+				Vertex b = { { start->x / width2, -start->y / height2 }, { 0.0f, 1.0f, 0.0f } };
+				Vertex c = { { end->x / width2, -end->y / height2 }, { 0.0f, 0.0f, 1.0f } };
+				vrtx.emplace_back(a);
+				vrtx.emplace_back(b);
+				vrtx.emplace_back(c);
+			}
+			curr = curr->next;
+		} while (curr != cells[i]->head);
 	}
 
+	VulkanEngine vulkanEngine;
 	vulkanEngine.v = vrtx;
-
-	for (size_t i = 0; i < vrtx.size(); i += 3) {
-		std::cout << "a: " << vrtx[i].pos.x << ' ' << vrtx[i].pos.y << std::endl;
-		std::cout << "b: " << vrtx[i + 1].pos.x << ' ' << vrtx[i + 1].pos.y << std::endl;
-		std::cout << "c: " << vrtx[i + 2].pos.x << ' ' << vrtx[i + 2].pos.y << std::endl;
-	}
-
     try {
         vulkanEngine.run();
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
 	return 0;
 }
