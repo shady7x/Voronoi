@@ -26,14 +26,15 @@ class Point {
 		double distSqr(const Point& p) {
             return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
         }
-        static int orientation(Point* a, Point* b, Point* c) {
-            double s = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
-            return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее a b, 0 на линии, 1 левее a b
-        }
-
+        
 		bool fuzzyEquals(const Point* other) {
         	return other != nullptr && fuzzyCompare(x, other->x) == 0 && fuzzyCompare(y, other->y) == 0;
 		}
+
+		static int orientation(Point* a, Point* b, Point* c) {
+            double s = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+            return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее(cw) a b, 0 на линии, 1 левее(ccw) a b
+        }
 };
 
 class HalfEdge;
@@ -47,9 +48,11 @@ class Cell : public Point {
 
 class Line {
 	public:
-		double a, b, c;
+		const double a, b, c;
 		
 		Line(double a, double b, double c) : a(a), b(b), c(c) {}
+
+		Line(const Point& p1, const Point& p2) : a(p2.y - p1.y), b(p1.x - p2.x), c(-a * p1.x - b * p1.y) {}
 		
 		Line(double x1, double y1, double x2, double y2) : a(y2 - y1), b(x1 - x2), c(-a * x1 - b * y1) {}
 		
@@ -96,44 +99,79 @@ class HalfEdge {
     	}
 
 		void setStart(std::shared_ptr< Point > p) {
-			if (twin->source->value == -2) {
-				twin->source->x = -source->x;
-				twin->source->y = -source->y;
-				twin->source->value = -1;
+			if (twin->source->value < 0) {
+				source->value = abs(twin->source->value);
+				twin->source = source;
 			}
 			source = p;
 		}
 
 		void setEnd(std::shared_ptr< Point > p) {
-			if (source->value == -2) {
-				source->x = -twin->source->x;
-				source->y = -twin->source->y;
-				source->value = -1;
+			if (source->value < 0) {
+				twin->source->value = abs(source->value);
+				source = twin->source;
 			}
 			twin->source = p;
 		}
 
+		int getQuadrant() {
+            if (source->value == 0 && twin->source->value == 0) {
+                int dx = fuzzyCompare(twin->source->x, source->x);
+                int dy = fuzzyCompare(twin->source->y, source->y);
+                if (dx >= 0 && dy > 0) return 1;
+                if (dx < 0 && dy >= 0) return 2;
+                if (dx <= 0 && dy < 0) return 3;
+                return 4;
+            }
+            if (source->value != 0) {
+                return abs(source->value);
+            }
+            return twin->source->value + (twin->source-> value < 3 ? 2 : -2);
+        }
+
 		Line getLine() {
-			return Line(source->x, source->y, twin->source->x, twin->source->y);
+			if (source->value == 0 && twin->source->value == 0) {
+                return Line(*source, *twin->source);
+            }
+            if (source->value != 0 && twin->source->value != 0) {
+                return source->value > 0
+                        ? Line(source->x, source->y, twin->source->x)
+                        : Line(twin->source->x, twin->source->y, source->x);
+            }
+            return source->value > 0
+                    ? Line(source->x, source->y, -source->x * twin->source->x - source->y * twin->source->y)
+                    : Line(twin->source->x, twin->source->y, -source->x * twin->source->x - source->y * twin->source->y);
 		}
 
 		bool onEdge(const Point& p) {
-			if (source->value >= 0 && twin->source->value >= 0) {
-				return fuzzyCompare(p.x, std::min(source->x, twin->source->x)) >= 0 
-					&& fuzzyCompare(p.x, std::max(source->x, twin->source->x)) <= 0
-					&& fuzzyCompare(p.y, std::min(source->y, twin->source->y)) >= 0
-					&& fuzzyCompare(p.y, std::max(source->y, twin->source->y)) <= 0;
-			}
-			if (source->value < 0 && twin->source->value < 0) {
-				return true;
-			}
-			if (source->value < 0) {
-				int da = fuzzyCompare(twin->source->x - p.x, 0), db = fuzzyCompare(twin->source->y - p.y, 0);
-				return (da == 0 && db == 0) || (da == fuzzyCompare(source->x, 0) && db == fuzzyCompare(source->y, 0));
-			} else {
-				int da = fuzzyCompare(source->x - p.x, 0), db = fuzzyCompare(source->y - p.y, 0);
-				return (da == 0 && db == 0) || (da == fuzzyCompare(twin->source->x, 0) && db == fuzzyCompare(twin->source->y, 0));
-			}
+			auto s = getStart(), e = getEnd();
+            if (s != nullptr && e != nullptr) {
+                return fuzzyCompare(p.x, std::min(s->x, e->x)) >= 0
+                        && fuzzyCompare(p.x, std::max(s->x, e->x)) <= 0
+                        && fuzzyCompare(p.y, std::min(s->y, e->y)) >= 0
+                        && fuzzyCompare(p.y, std::max(s->y, e->y)) <= 0;
+            }
+            if (s == nullptr && e == nullptr) {
+                return true;
+            }
+            switch (getQuadrant()) {
+                case 1:
+                    return s == nullptr
+                            ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) <= 0
+                            : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) >= 0;
+                case 2:
+                    return s == nullptr
+                            ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) <= 0
+                            : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) >= 0;
+                case 3:
+                    return s == nullptr
+                            ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) >= 0
+                            : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) <= 0;
+                default:
+                    return s == nullptr
+                            ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) >= 0
+                            : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) <= 0;
+            }
 		}
 
 	private:
