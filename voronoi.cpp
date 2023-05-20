@@ -79,6 +79,10 @@ class Line {
 			double a = p2.y - p1.y, b = p1.x - p2.x;
 			return Line(b, -a, -b * p.x + a * p.y);
 		}
+
+		std::string toString() {
+			return std::to_string(a) + " " + std::to_string(b) + " " + std::to_string(c);
+		}
 };
 
 class HalfEdge {
@@ -146,10 +150,10 @@ class HalfEdge {
 		bool onEdge(const Point& p) {
 			auto s = getStart(), e = getEnd();
             if (s != nullptr && e != nullptr) {
-                return fuzzyCompare(p.x, std::min(s->x, e->x)) >= 0
-                        && fuzzyCompare(p.x, std::max(s->x, e->x)) <= 0
-                        && fuzzyCompare(p.y, std::min(s->y, e->y)) >= 0
-                        && fuzzyCompare(p.y, std::max(s->y, e->y)) <= 0;
+                return fuzzyCompare(p.x, std::min(s->x, e->x)) >= 0 
+					&& fuzzyCompare(p.x, std::max(s->x, e->x)) <= 0
+                    && fuzzyCompare(p.y, std::min(s->y, e->y)) >= 0
+                    && fuzzyCompare(p.y, std::max(s->y, e->y)) <= 0;
             }
             if (s == nullptr && e == nullptr) {
                 return true;
@@ -157,44 +161,44 @@ class HalfEdge {
             switch (getQuadrant()) {
                 case 1:
                     return s == nullptr
-                            ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) <= 0
-                            : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) >= 0;
+                        ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) <= 0
+                        : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) >= 0;
                 case 2:
                     return s == nullptr
-                            ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) <= 0
-                            : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) >= 0;
+                        ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) <= 0
+                        : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) >= 0;
                 case 3:
                     return s == nullptr
-                            ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) >= 0
-                            : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) <= 0;
+                        ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) >= 0
+                        : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) <= 0;
                 default:
                     return s == nullptr
-                            ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) >= 0
-                            : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) <= 0;
+                        ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) >= 0
+                        : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) <= 0;
             }
+		}
+
+		static HalfEdge* createEdge(std::shared_ptr< Point > p1, std::shared_ptr< Point > p2, const Line& l, Cell* left, Cell* right) {
+			int q = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? 4 : 3;
+			if (p1 == nullptr) {
+				p1 =  std::make_shared< Point >(l.a, l.b, q - 2);
+				if (p2 == nullptr) {
+					p2 =  std::make_shared< Point >(l.c, 0, -q);
+				}
+			} else if (p2 == nullptr) {
+				p2 =  std::make_shared< Point >(l.a, l.b, q);
+			}
+			HalfEdge* leftEdge = new HalfEdge(p1, left);
+			HalfEdge* rightEdge = new HalfEdge(p2, right);
+			leftEdge->twin = rightEdge->next = rightEdge->prev = rightEdge;
+			rightEdge->twin = leftEdge->next = leftEdge->prev = leftEdge;
+			return leftEdge;
 		}
 
 	private:
 		std::shared_ptr< Point > source;
-		
 };
 
-HalfEdge* createEdge(std::shared_ptr< Point > p1, std::shared_ptr< Point > p2, const Line& l, Cell* left, Cell* right) {
-	double b = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? abs(l.b): -abs(l.b); //? 4 : 3;
-	if (p1 == nullptr) {
-		p1 = std::make_shared< Point >(-b, abs(l.a), -1);
-		if (p2 == nullptr) {
-			p2 = std::make_shared< Point >((left->x + right->x) / 2, (left->y + right->y) / 2, -2);
-		}
-	} else if (p2 == nullptr) {
-		p2 = std::make_shared< Point >(b, -abs(l.a), -1);
-	}
-	auto leftEdge = new HalfEdge(p1, left);
-	auto rightEdge = new HalfEdge(p2, right);
-	rightEdge->prev = rightEdge->next = leftEdge->twin = rightEdge;
-	leftEdge->prev = leftEdge->next = rightEdge->twin = leftEdge;
-	return leftEdge;
-}
 
 class HalfEdgePtr {
 	
@@ -238,6 +242,7 @@ class HalfEdgePtr {
 					move();
 				} while (edge != start);
 			}
+			cp = nullptr;
 		}
 	private:
 		const bool clockwise;
@@ -402,7 +407,7 @@ void connectChain(HalfEdge* first, HalfEdge* chainStart, HalfEdge* second, bool 
 		chainEnd->next = second;
 		cell->head = chainStart;
 	} else {
-		markEdgesForDeletion(first->next, cell->head->prev, deletion);
+		markEdgesForDeletion(first->next, cell->head, deletion);
 		first->next = chainStart;
 		chainStart->prev = first;
 		cell->head->prev = chainEnd;
@@ -432,7 +437,7 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 		left.intersection(seam, lastP);
 		right.intersection(seam, lastP);
 		if (left.cp == nullptr && right.cp == nullptr) {
-			auto edge = createEdge(nullptr, lastP, seam, left.cell, right.cell);
+			auto edge = HalfEdge::createEdge(nullptr, lastP, seam, left.cell, right.cell);
         	leftChain = addChainLink(edge, leftChain, true);
             rightChain = addChainLink(edge->twin, rightChain, false);
             connectChain(nullptr, leftChain, left.top, left.headSkipped, deletion);
@@ -441,7 +446,7 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 		}
 		int cmp = left.cp == nullptr ? 1 : (right.cp == nullptr ? -1 : fuzzyCompare(right.cp->y, left.cp->y));
 		std::shared_ptr< Point > point = cmp <= 0 ? left.cp : right.cp;
-		auto edge = createEdge(point, lastP, seam, left.cell, right.cell);
+		auto edge = HalfEdge::createEdge(point, lastP, seam, left.cell, right.cell);
 		leftChain = addChainLink(edge, leftChain, true);
 		rightChain = addChainLink(edge->twin, rightChain, false);
 		mid = lastP = point;
@@ -513,8 +518,15 @@ int main(int argc, char** argv)
 		std::cout << "\ncell: " << cell->x << " " << cell->y << std::endl;
 		auto curr = cell->head;
 		do {
-			std::cout << "start: " << curr->getStart()->x << " " << curr->getStart()->y << " " << curr->getStart()->value << std::endl;
-			std::cout << "end: " << curr->getEnd()->x << " " << curr->getEnd()->y << " " << curr->getEnd()->value << std::endl;
+			std::cout << "HalfEdge: " << curr;
+			if (curr->getStart() != nullptr) {
+				std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
+			}
+			if (curr->getEnd() != nullptr) {
+				std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
+			}
+			std::cout << " " << curr->getLine().toString() << " " << curr->twin <<std::endl;
+
 			curr = curr->next;
 		} while (curr != cell->head);
 	}
