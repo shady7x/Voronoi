@@ -69,8 +69,8 @@ class VulkanEngine {
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
-        const uint32_t WIDTH = 800;
-        const uint32_t HEIGHT = 600;
+        const uint32_t WIDTH = 1024;
+        const uint32_t HEIGHT = 768;
         const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
         uint32_t currentFrame = 0;
