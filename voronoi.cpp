@@ -543,21 +543,21 @@ int main(int argc, char** argv) {
 			}
 			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 
-			float n = std::min(std::max((perlin.noise(x, (height - y - 1)) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-			// uint8_t color = 255 * n;
-			// image << color << color << color;
+			// float n = std::min(std::max((perlin.noise(x, (height - y - 1)) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+			// // uint8_t color = 255 * n;
+			// // image << color << color << color;
 			
-			if (n < 0.33) {
-				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
-			} else if (n < 0.4) {
-				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
-			} else if (n < 0.45) {
-				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
-			} else if (n > 0.7) {
-				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
-			} else {
-				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
-			}
+			// if (n < 0.33) {
+			// 	colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
+			// } else if (n < 0.4) {
+			// 	colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
+			// } else if (n < 0.45) {
+			// 	colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
+			// } else if (n > 0.7) {
+			// 	colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
+			// } else {
+			// 	colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
+			// }
 
 		}
 	}
