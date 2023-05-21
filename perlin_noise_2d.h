@@ -41,9 +41,9 @@ class PerlinNoise2D {
             }
             PerlinNoise2D perlin(seed);
             std::cout << "perlin seed: " << seed << std::endl;
-            for (uint32_t j = 0; j < height; ++j) {
-                for (uint32_t i = 0; i < width; ++i) {
-                    float n = std::min(std::max((perlin.noise(i / res, (height - j - 1) / res) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+            for (uint32_t y = 0; y < height; ++y) {
+                for (uint32_t x = 0; x < width; ++x) {
+                    float n = std::min(std::max((perlin.noise(x / res, (height - y - 1) / res) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
                     // uint8_t color = 255 * n;
                     // image << color << color << color;
                     

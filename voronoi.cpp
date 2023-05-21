@@ -509,48 +509,57 @@ void printCell(Cell* cell) {
 
 
 int main(int argc, char** argv) {
-	// 1683966317
-	// PerlinNoise2D::generateImage(512, 512, 80, 1683966317);
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
 
-	float width2 = 512.0, height2 = 384.0;
+	int32_t width = 1024, height = 768, halfWidth = width / 2, halfHeight = height / 2, seed = 1683966317;// 1683966317
+	//PerlinNoise2D::generateImage(width, height, 80, seed); 
 	
-	
-	int seed = 1684609713; 
-	// int seed = time(0);
-	std::cout << seed << std::endl;
+	int32_t regionSize = 32, regionPad = 2; 
 	std::default_random_engine engine(seed);
-    std::uniform_real_distribution< double > distributionW(2.0, 14.0);
-	std::uniform_real_distribution< double > distributionH(2.0, 14.0);
+    std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
 
 	std::vector < Cell* > cells;
-	double x, y;
-	for (int i = 0; i < 64; ++i) {
-		for (int j = 0; j < 48; ++j) {
-			x = distributionW(engine) - width2 + i * 16;
-			y = distributionH(engine) - height2 + j * 16;
-			cells.push_back(new Cell(x, y, i * 48 + j + 1));
+	for (int32_t i = 0; i < height / regionSize; ++i) {
+		for (int32_t j = 0; j < width / regionSize; ++j) {
+			double x = regionDistr(engine), y = regionDistr(engine);
+			if (i == 0) {
+				x = y = regionSize / 2;
+				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
+			} else if (i == height / regionSize - 1) {
+				x = y = regionSize / 2;
+				cells.push_back(new Cell(x + j * regionSize, y + (i + 1) * regionSize));
+			}
+			if (j == 0) {
+				x = y = regionSize / 2; 
+				cells.push_back(new Cell(x + (j - 1) * regionSize, y + i * regionSize));
+			} else if (j == width / regionSize - 1) {
+				x = y = regionSize / 2;
+				cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
+			}
+			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 		}
+	}
+	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
+
+	for (const auto& cell : cells) {
+		std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
 	}
 
 	// int n;
 	// std::cin >> n;	
+	// std::vector < Cell* > inputCells;
 	// for (int i = 0; i < n; ++i) {
-	// 	x = distributionW(engine);
-	// 	y = distributionH(engine);
 	// 	std::cin >> x >> y;
-	// 	cells.push_back(new Cell(x, y, i + 1));
+	// 	inputCells.push_back(new Cell(x, y, i + 1));
 	// }
-	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
-	std::cout << cells.size() << std::endl;
-	for (size_t i = 0; i < cells.size(); ++i) {
-		if (i > 0 && cells[i]->fuzzyEquals(cells[i - 1])) {
-			std::cout << "WRONG" << std::endl;
-			return 0;
-		}
-		std::cout << cells[i]->x << " " << cells[i]->y << " " << cells[i]->value << std::endl;
-	}
+	// sort(inputCells.begin(), inputCells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
+	// for (size_t i = 0; i < inputCells.size(); ++i) {
+	// 	if (i == 0 || inputCells[i]->fuzzyEquals(inputCells[i - 1])) {
+	// 		cells.emplace_back(inputCells[i]);
+	// 	}
+	// }
+
 	voronoi(cells, 0, cells.size());
 
 	std::uniform_real_distribution< float > R(0.1, 0.9);
@@ -558,19 +567,22 @@ int main(int argc, char** argv) {
 	std::uniform_real_distribution< float > B(0.1, 0.9);
 	std::vector< Vertex > vrtx;
 	for (size_t i = 0; i < cells.size(); ++i) {
-		printCell(cells[i]);
+		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 		glm::vec3 color{ R(engine), G(engine), B(engine) };
-		Vertex a = { { cells[i]->x  / width2, cells[i]->y / height2 }, color };
+		Vertex a = { { (cells[i]->x - halfWidth) / halfWidth, (cells[i]->y - halfHeight) / -halfHeight }, color };
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { start->x / width2, start->y / height2 }, color  };
-				Vertex c = { { end->x / width2, end->y / height2 }, color  };
+				Vertex b = { { (start->x - halfWidth) / halfWidth, (start->y - halfHeight) / -halfHeight }, color  };
+				Vertex c = { { (end->x - halfWidth) / halfWidth, (end->y - halfHeight) / -halfHeight }, color  };
 				vrtx.emplace_back(a);
-				vrtx.emplace_back(b);
 				vrtx.emplace_back(c);
+				vrtx.emplace_back(b);
+				
+
+				// std::cout << a.pos.x << ' ' << a.pos.y << ' | ' <<  << std::endl;
 			}
 			curr = curr->next;
 		} while (curr != cells[i]->head);
