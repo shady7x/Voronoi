@@ -75,11 +75,6 @@ class PerlinNoise2D {
             }
         }
 
-    private:
-        const uint32_t SEED;
-        const size_t HASH_SIZE = 256;
-        std::vector< uint32_t > hash;
-
         float noise(float x, float y, int octaves = 1, float persistence = 0.5f) {
             float amplitude = 1, max = 0, result = 0;
             while (octaves-- > 0) {
@@ -101,6 +96,13 @@ class PerlinNoise2D {
             }
             return result / max;
         }
+
+    private:
+        const uint32_t SEED;
+        const size_t HASH_SIZE = 256;
+        std::vector< uint32_t > hash;
+
+        
 
         glm::vec2 getPseudorandomVector(uint32_t x, uint32_t y) {
             float rad = M_PI * hash[(x + hash[(y + SEED) % HASH_SIZE]) % HASH_SIZE] / 180;

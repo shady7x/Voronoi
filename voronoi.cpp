@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <set>
+#include <map>
 #include <cmath>
 #include <memory>
 #include "vulkan_engine.h"
@@ -19,9 +20,9 @@ int fuzzyCompare(double val1, double val2) {
 class Point {
     public:
 	    double x, y;
-		int value;
+		int32_t value;
 
-        Point(double x, double y, int value = 0) : x(x), y(y), value(value) {}
+        Point(double x, double y, int32_t value = 0) : x(x), y(y), value(value) {}
         
 		double distSqr(const Point& p) {
             return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
@@ -43,7 +44,7 @@ class Cell : public Point {
 	public:
 		HalfEdge* head = nullptr;
 
-		Cell(double x, double y, int value = 0) : Point(x, y, value) {}
+		Cell(double x, double y, int32_t value = 0) : Point(x, y, value) {}
 };
 
 class Line {
@@ -471,9 +472,9 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			rightChain = nullptr;
 		}
 	}
-	// for (size_t i = 0; i < deletion.size(); ++i) {
-	// 	delete deletion[i];
-	// }
+	for (size_t i = 0; i < deletion.size(); ++i) {
+		delete deletion[i];
+	}
 }
 
 PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
@@ -485,7 +486,6 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	auto right = voronoi(cells, mid, end);
 	auto merged = merge(left, right);
 	mergeVoronoi(merged.second);
-	std::cout << merged.second.first->value << ' ' << merged.second.second->value << "  ||  " << merged.second.first->x << ' ' << merged.second.first->y << ' ' << merged.second.second->x << ' ' << merged.second.second->y << std::endl;
 	return merged.first;
 }
 
@@ -512,16 +512,20 @@ int main(int argc, char** argv) {
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
 
-	int32_t width = 1024, height = 768, halfWidth = width / 2, halfHeight = height / 2, seed = 1683966317;// 1683966317
-	//PerlinNoise2D::generateImage(width, height, 80, seed); 
-	
+	int32_t width = 1024, height = 768, seed = time(0);// 1683966317
+	std::cout << seed << std::endl;
+	// PerlinNoise2D::generateImage(width, height, 80, seed); 
+	PerlinNoise2D perlin(seed);
+
+
 	int32_t regionSize = 32, regionPad = 2; 
 	std::default_random_engine engine(seed);
     std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
-
 	std::vector < Cell* > cells;
+	std::map< int32_t, glm::vec3 > colors;
 	for (int32_t i = 0; i < height / regionSize; ++i) {
 		for (int32_t j = 0; j < width / regionSize; ++j) {
+			
 			double x = regionDistr(engine), y = regionDistr(engine);
 			if (i == 0) {
 				x = y = regionSize / 2;
@@ -538,27 +542,51 @@ int main(int argc, char** argv) {
 				cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
 			}
 			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
+
+			float n = std::min(std::max((perlin.noise(x, (height - y - 1)) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+			// uint8_t color = 255 * n;
+			// image << color << color << color;
+			
+			if (n < 0.33) {
+				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
+			} else if (n < 0.4) {
+				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
+			} else if (n < 0.45) {
+				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
+			} else if (n > 0.7) {
+				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
+			} else {
+				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
+			}
+
 		}
 	}
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
-	for (const auto& cell : cells) {
-		std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
-	}
+	
 
 	// int n;
 	// std::cin >> n;	
 	// std::vector < Cell* > inputCells;
+	// std::uniform_real_distribution< double > xDistribution(0, width);
+	// std::uniform_real_distribution< double > yDistribution(0, height);
 	// for (int i = 0; i < n; ++i) {
-	// 	std::cin >> x >> y;
+	// 	double x, y;
+	// 	//std::cin >> x >> y;
+	// 	x = xDistribution(engine);
+	// 	y = yDistribution(engine);
 	// 	inputCells.push_back(new Cell(x, y, i + 1));
 	// }
 	// sort(inputCells.begin(), inputCells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 	// for (size_t i = 0; i < inputCells.size(); ++i) {
-	// 	if (i == 0 || inputCells[i]->fuzzyEquals(inputCells[i - 1])) {
-	// 		cells.emplace_back(inputCells[i]);
+	// 	if (i == 0 || inputCells[i]->fuzzyEquals(inputCells[i - 1]) == false) {
+	// 		cells.push_back(inputCells[i]);
 	// 	}
 	// }
+	std::cout << "Cells size: " << cells.size() << std::endl;
+	for (const auto& cell : cells) {
+		std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
+	}
 
 	voronoi(cells, 0, cells.size());
 
@@ -567,27 +595,24 @@ int main(int argc, char** argv) {
 	std::uniform_real_distribution< float > B(0.1, 0.9);
 	std::vector< Vertex > vrtx;
 	for (size_t i = 0; i < cells.size(); ++i) {
+		if (cells[i]->value == 0) continue;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 		glm::vec3 color{ R(engine), G(engine), B(engine) };
-		Vertex a = { { (cells[i]->x - halfWidth) / halfWidth, (cells[i]->y - halfHeight) / -halfHeight }, color };
+		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value] };
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { (start->x - halfWidth) / halfWidth, (start->y - halfHeight) / -halfHeight }, color  };
-				Vertex c = { { (end->x - halfWidth) / halfWidth, (end->y - halfHeight) / -halfHeight }, color  };
+				Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value] };
+				Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value] };
 				vrtx.emplace_back(a);
 				vrtx.emplace_back(c);
 				vrtx.emplace_back(b);
-				
-
-				// std::cout << a.pos.x << ' ' << a.pos.y << ' | ' <<  << std::endl;
 			}
 			curr = curr->next;
 		} while (curr != cells[i]->head);
 	}
-	std::cout << std::endl;
 	VulkanEngine vulkanEngine;
 	vulkanEngine.v = vrtx;
     try {
