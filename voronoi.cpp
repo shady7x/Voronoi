@@ -200,6 +200,14 @@ class HalfEdge {
 		std::shared_ptr< Point > source;
 };
 
+class VoronoiChainTree {
+	public:
+		std::unique_ptr< VoronoiChainTree > l = nullptr, r = nullptr;
+		std::vector< Cell* > left, right;
+		std::vector< std::shared_ptr< Point > > chain;
+
+
+};
 
 class HalfEdgePtr {
 	
@@ -275,15 +283,12 @@ class PolyNode {
 };
 
 std::pair< PolyNode*, PolyNode* > findRightChain(Point* p, PolyNode* right) {
-	if (right == right->next)
-		return std::make_pair(right, right);
-
+	if (right == right->next) return std::make_pair(right, right);
 	if (right->next == right->prev) {
 		return Point::orientation(p, right->p, right->next->p) < 0
 			? std::make_pair(right->next, right)
 			: std::make_pair(right, right->next);
 	}
-
 	PolyNode* current = right;
 	std::pair< PolyNode*, PolyNode* > chain{ nullptr, nullptr };
 	while (chain.first == nullptr || chain.second == nullptr) {
@@ -298,7 +303,6 @@ std::pair< PolyNode*, PolyNode* > findRightChain(Point* p, PolyNode* right) {
 
         current = current->next;
 	}
-
 	return chain;
 }
 
@@ -319,11 +323,9 @@ std::pair< PolyNode*, std::pair< Point*, Point* > > merge(PolyNode* left, PolyNo
 			curr = l;
 			l = l->next == left ? nullptr : l->next;
 		}
-
 		while (m.size() >= 2 && Point::orientation(m[m.size() - 2]->p, m[m.size() - 1]->p, curr->p) <= 0) {
 			m.pop_back();
 		}
-
 		if (m[m.size() - 1]->next != curr) {
 			if (rside) {
 				low = m.size() - 1;
@@ -333,7 +335,6 @@ std::pair< PolyNode*, std::pair< Point*, Point* > > merge(PolyNode* left, PolyNo
 		}
         m.emplace_back(curr);
 	}
-
 	if (m.size() > 2 && Point::orientation(m[m.size() - 2]->p, m[m.size() - 1]->p, m[0]->p) <= 0) { // может быть только == 0
 		m.pop_back();
 	}
