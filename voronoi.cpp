@@ -513,24 +513,36 @@ int main(int argc, char** argv) {
 	// PerlinNoise2D::generateImage(512, 512, 80, 1683966317);
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
-	int n;
+
 	float width2 = 512.0, height2 = 384.0;
-	std::vector < Cell* > cells;
-	int x, y;
+	
+	
 	int seed = 1684609713; 
 	// int seed = time(0);
 	std::cout << seed << std::endl;
-	std::cin >> n;	
 	std::default_random_engine engine(seed);
-    std::uniform_int_distribution< int32_t > distributionW(-width2, width2);
-	std::uniform_int_distribution< int32_t > distributionH(-height2, height2);
-	for (int i = 0; i < n; ++i) {
-		// x = distributionW(engine);
-		// y = distributionH(engine);
-		std::cin >> x >> y;
-		cells.push_back(new Cell(x, y, i + 1));
+    std::uniform_real_distribution< double > distributionW(2.0, 14.0);
+	std::uniform_real_distribution< double > distributionH(2.0, 14.0);
+
+	std::vector < Cell* > cells;
+	double x, y;
+	for (int i = 0; i < 64; ++i) {
+		for (int j = 0; j < 48; ++j) {
+			x = distributionW(engine) - width2 + i * 16;
+			y = distributionH(engine) - height2 + j * 16;
+			cells.push_back(new Cell(x, y, i * 48 + j + 1));
+		}
 	}
-	sort(cells.begin(), cells.end(), [] (Cell* a, Cell* b) {return a->x < b->x || (a->x == b->x && a->y < b->y);});
+
+	// int n;
+	// std::cin >> n;	
+	// for (int i = 0; i < n; ++i) {
+	// 	x = distributionW(engine);
+	// 	y = distributionH(engine);
+	// 	std::cin >> x >> y;
+	// 	cells.push_back(new Cell(x, y, i + 1));
+	// }
+	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 	std::cout << cells.size() << std::endl;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (i > 0 && cells[i]->fuzzyEquals(cells[i - 1])) {
@@ -549,13 +561,13 @@ int main(int argc, char** argv) {
 		printCell(cells[i]);
 		auto curr = cells[i]->head;
 		glm::vec3 color{ R(engine), G(engine), B(engine) };
-		Vertex a = { { cells[i]->x  / width2, cells[i]->y / height2 }, {1.0, 0.0, 0.0} };
+		Vertex a = { { cells[i]->x  / width2, cells[i]->y / height2 }, color };
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { start->x / width2, start->y / height2 }, {0.0, 1.0, 0.0}  };
-				Vertex c = { { end->x / width2, end->y / height2 }, {0.0, 0.0, 1.0}  };
+				Vertex b = { { start->x / width2, start->y / height2 }, color  };
+				Vertex c = { { end->x / width2, end->y / height2 }, color  };
 				vrtx.emplace_back(a);
 				vrtx.emplace_back(b);
 				vrtx.emplace_back(c);
