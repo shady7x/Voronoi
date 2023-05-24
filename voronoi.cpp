@@ -513,12 +513,10 @@ int main(int argc, char** argv) {
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
 
-	int32_t width = 1024, height = 768, seed = 1684952650;// 1683966317, 1684952532, 1684952650
-	std::cout << seed << std::endl;
+	int32_t width = 1024, height = 768, seed = 1684952532;// 1683966317, 1684952532
+	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	PerlinNoise2D::generateImage(1024, 1024, 32, 1, seed);
-
-
+	perlin.saveImage(512, 512, 64, 1);
 	int32_t regionSize = 32, regionPad = 2; 
 	std::default_random_engine engine(seed);
     std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
@@ -527,7 +525,7 @@ int main(int argc, char** argv) {
 	for (int32_t i = 0; i < height / regionSize; ++i) {
 		for (int32_t j = 0; j < width / regionSize; ++j) {
 			double x = regionDistr(engine), y = regionDistr(engine);
-			// x = y = regionSize / 2;
+			x = y = regionSize / 2;
 			if (i == 0) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
@@ -544,14 +542,14 @@ int main(int argc, char** argv) {
 			}
 			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 
-			float n = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-			if (n < 0.33) {
+			float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 1) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+			if (noiseVal < 0.33) {
 				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
-			} else if (n < 0.4) {
+			} else if (noiseVal < 0.4) {
 				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
-			} else if (n < 0.45) {
+			} else if (noiseVal < 0.45) {
 				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
-			} else if (n > 0.7) {
+			} else if (noiseVal > 0.7) {
 				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
 			} else {
 				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};

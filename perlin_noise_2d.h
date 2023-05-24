@@ -8,10 +8,9 @@
 
 class PerlinNoise2D {
     public:
-        static void generateImage(uint32_t width, uint32_t height, float res = 2, int32_t octaves = 1, uint32_t seed = time(0)) {
+        void saveImage(uint32_t width, uint32_t height, float res = 2, int32_t octaves = 1) {
             uint32_t padSize = (4 - (width * 3) % 4) % 4;
             uint32_t fileSize = (width + padSize) * height * 3 + 54;
-            std::cout << fileSize << std::endl;
             //all integer little-endian
             std::vector< uint8_t > bmpHeaders = {
                 // BITMAPFILEHEADER
@@ -36,43 +35,31 @@ class PerlinNoise2D {
                 0, 0, 0, 0, // the number of colors in the color palette, or 0 to default to 2^n
                 0, 0, 0, 0  // the number of important colors used, or 0 when every color is important; generally ignored
             };
-            std::ofstream image("perlin_noise.bmp");
+            std::ofstream image("perlin_noise.bmp", std::ios_base::binary);
             for (const auto& b : bmpHeaders) {
                 image << b;
             }
-            PerlinNoise2D perlin(seed);
-            std::cout << "perlin seed: " << seed << std::endl;
             for (uint32_t y = 0; y < height; ++y) {
                 for (uint32_t x = 0; x < width; ++x) {
-
-
-                    float noiseVal = std::min(std::max((perlin.noise(x / res, y / res, octaves) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-                    uint8_t color = round(255 * noiseVal);
+                    float noiseVal = std::min(std::max((noise(x / res, y / res, octaves) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+                    // uint8_t color = static_cast< uint8_t >(round(255 * noiseVal));
+                    // image << color << color << color;
                     
-                    if (x == 0 && y < 368) {
-                        image << 0 << 0 << static_cast< uint8_t >(255);
-                        std::cout << static_cast< int16_t >(color) << std::endl;
+                    if (x < 32 && y < 24) { // окно камеры
+                        image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
+                    } else 
+
+                    if (noiseVal < 0.33) {
+                        image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
+                    } else if (noiseVal < 0.4) {
+                        image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
+                    } else if (noiseVal < 0.45) {
+                        image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
+                    } else if (noiseVal > 0.7) {
+                        image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
                     } else {
-                        image << color << color << color;
-                    }
-                    
-
-                    // if (x < 32 && y < 24) { // окно камеры
-                    //     image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
-                    //     std::cout << "perlin image x,y = " << x / res << ' ' << (height - y - 1) / res << ", value = " << n << std::endl;
-                    // } else 
-
-                    // if (n < 0.33) {
-                    //     image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
-                    // } else if (n < 0.4) {
-                    //     image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
-                    // } else if (n < 0.45) {
-                    //     image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
-                    // } else if (n > 0.7) {
-                    //     image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
-                    // } else {
-                    //     image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
-                    // } 
+                        image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
+                    } 
                 }
                 for (uint32_t i = 0; i < padSize; ++i) {
                     image << static_cast< uint8_t >(0);
