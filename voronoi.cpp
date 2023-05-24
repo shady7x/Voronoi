@@ -512,10 +512,10 @@ int main(int argc, char** argv) {
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
 
-	int32_t width = 1024, height = 768, seed = time(0);// 1683966317
+	int32_t width = 1024, height = 768, seed = 1684952650;// 1683966317, 1684952532, 1684952650
 	std::cout << seed << std::endl;
-	// PerlinNoise2D::generateImage(width, height, 80, seed); 
 	PerlinNoise2D perlin(seed);
+	PerlinNoise2D::generateImage(1024, 1024, 32, 1, seed);
 
 
 	int32_t regionSize = 32, regionPad = 2; 
@@ -525,8 +525,8 @@ int main(int argc, char** argv) {
 	std::map< int32_t, glm::vec3 > colors;
 	for (int32_t i = 0; i < height / regionSize; ++i) {
 		for (int32_t j = 0; j < width / regionSize; ++j) {
-			
 			double x = regionDistr(engine), y = regionDistr(engine);
+			// x = y = regionSize / 2;
 			if (i == 0) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
@@ -543,21 +543,18 @@ int main(int argc, char** argv) {
 			}
 			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 
-			// float n = std::min(std::max((perlin.noise(x, (height - y - 1)) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-			// // uint8_t color = 255 * n;
-			// // image << color << color << color;
-			
-			// if (n < 0.33) {
-			// 	colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
-			// } else if (n < 0.4) {
-			// 	colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
-			// } else if (n < 0.45) {
-			// 	colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
-			// } else if (n > 0.7) {
-			// 	colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
-			// } else {
-			// 	colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
-			// }
+			float n = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+			if (n < 0.33) {
+				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
+			} else if (n < 0.4) {
+				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
+			} else if (n < 0.45) {
+				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
+			} else if (n > 0.7) {
+				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
+			} else {
+				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
+			}
 
 		}
 	}
@@ -583,10 +580,10 @@ int main(int argc, char** argv) {
 	// 		cells.push_back(inputCells[i]);
 	// 	}
 	// }
-	std::cout << "Cells size: " << cells.size() << std::endl;
-	for (const auto& cell : cells) {
-		std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
-	}
+	// std::cout << "Cells size: " << cells.size() << std::endl;
+	// for (const auto& cell : cells) {
+	// 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
+	// }
 
 	voronoi(cells, 0, cells.size());
 
@@ -599,13 +596,13 @@ int main(int argc, char** argv) {
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 		glm::vec3 color{ R(engine), G(engine), B(engine) };
-		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value] };
+		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 1.0, 0.0, 0.0 } };
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value] };
-				Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value] };
+				Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
 				vrtx.emplace_back(a);
 				vrtx.emplace_back(c);
 				vrtx.emplace_back(b);

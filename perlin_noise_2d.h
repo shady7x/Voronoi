@@ -8,9 +8,10 @@
 
 class PerlinNoise2D {
     public:
-        static void generateImage(uint32_t width, uint32_t height, float res = 2, uint32_t seed = time(0)) {
+        static void generateImage(uint32_t width, uint32_t height, float res = 2, int32_t octaves = 1, uint32_t seed = time(0)) {
             uint32_t padSize = (4 - (width * 3) % 4) % 4;
             uint32_t fileSize = (width + padSize) * height * 3 + 54;
+            std::cout << fileSize << std::endl;
             //all integer little-endian
             std::vector< uint8_t > bmpHeaders = {
                 // BITMAPFILEHEADER
@@ -43,21 +44,35 @@ class PerlinNoise2D {
             std::cout << "perlin seed: " << seed << std::endl;
             for (uint32_t y = 0; y < height; ++y) {
                 for (uint32_t x = 0; x < width; ++x) {
-                    float n = std::min(std::max((perlin.noise(x / res, (height - y - 1) / res) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-                    // uint8_t color = 255 * n;
-                    // image << color << color << color;
+
+
+                    float noiseVal = std::min(std::max((perlin.noise(x / res, y / res, octaves) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+                    uint8_t color = round(255 * noiseVal);
                     
-                    if (n < 0.33) {
-                        image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
-                    } else if (n < 0.4) {
-                        image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
-                    } else if (n < 0.45) {
-                        image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
-                    } else if (n > 0.7) {
-                        image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
+                    if (x == 0 && y < 368) {
+                        image << 0 << 0 << static_cast< uint8_t >(255);
+                        std::cout << static_cast< int16_t >(color) << std::endl;
                     } else {
-                        image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
-                    } 
+                        image << color << color << color;
+                    }
+                    
+
+                    // if (x < 32 && y < 24) { // окно камеры
+                    //     image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
+                    //     std::cout << "perlin image x,y = " << x / res << ' ' << (height - y - 1) / res << ", value = " << n << std::endl;
+                    // } else 
+
+                    // if (n < 0.33) {
+                    //     image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
+                    // } else if (n < 0.4) {
+                    //     image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
+                    // } else if (n < 0.45) {
+                    //     image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
+                    // } else if (n > 0.7) {
+                    //     image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
+                    // } else {
+                    //     image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
+                    // } 
                 }
                 for (uint32_t i = 0; i < padSize; ++i) {
                     image << static_cast< uint8_t >(0);
@@ -75,7 +90,7 @@ class PerlinNoise2D {
             }
         }
 
-        float noise(float x, float y, int octaves = 1, float persistence = 0.5f) {
+        float noise(float x, float y, int32_t octaves = 1, float persistence = 0.5f) {
             float amplitude = 1, max = 0, result = 0;
             while (octaves-- > 0) {
                 max += amplitude;
@@ -98,11 +113,9 @@ class PerlinNoise2D {
         }
 
     private:
-        const uint32_t SEED;
+        const uint64_t SEED;
         const size_t HASH_SIZE = 256;
         std::vector< uint32_t > hash;
-
-        
 
         glm::vec2 getPseudorandomVector(uint32_t x, uint32_t y) {
             float rad = M_PI * hash[(x + hash[(y + SEED) % HASH_SIZE]) % HASH_SIZE] / 180;
