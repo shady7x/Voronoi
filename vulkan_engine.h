@@ -127,6 +127,9 @@ class VulkanEngine {
         std::vector< VkDeviceMemory > uniformBuffersMemory;
         std::vector< void* > uniformBuffersMapped;
 
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSets;
+
         std::vector< VkSemaphore > imageAvailableSemaphores;
         std::vector< VkSemaphore > renderFinishedSemaphores;
         std::vector< VkFence > inFlightFences;
@@ -151,6 +154,8 @@ class VulkanEngine {
         void createVertexBuffer();
         void createIndexBuffer();
         void createUniformBuffers();
+        void createDescriptorPool();
+        void createDescriptorSets();
         void createCommandBuffer();
         void createSyncObjects();
 
