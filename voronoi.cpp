@@ -517,15 +517,18 @@ int main(int argc, char** argv) {
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(512, 512, 64, 1);
-	int32_t regionSize = 32, regionPad = 2; 
+	int32_t regionSize = 32, regionPad = 4; 
 	std::default_random_engine engine(seed);
     std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
 	std::vector < Cell* > cells;
 	std::map< int32_t, glm::vec3 > colors;
+
+
+	
 	for (int32_t i = 0; i < height / regionSize; ++i) {
 		for (int32_t j = 0; j < width / regionSize; ++j) {
 			double x = regionDistr(engine), y = regionDistr(engine);
-			x = y = regionSize / 2;
+			// x = y = regionSize / 2;
 			if (i == 0) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));

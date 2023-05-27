@@ -131,6 +131,7 @@ class VulkanEngine {
         void createFramebuffers();
         void createCommandPool();
         void createVertexBuffer();
+        void createIndexBuffer();
         void createCommandBuffer();
         void createSyncObjects();
 
@@ -138,6 +139,9 @@ class VulkanEngine {
         void recreateSwapChain();
         void drawFrame();
 
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         VkShaderModule createShaderModule(const std::vector<char> &code);
         QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice &device);
         SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice &device);
