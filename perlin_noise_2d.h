@@ -35,31 +35,31 @@ class PerlinNoise2D {
                 0, 0, 0, 0, // the number of colors in the color palette, or 0 to default to 2^n
                 0, 0, 0, 0  // the number of important colors used, or 0 when every color is important; generally ignored
             };
-            std::ofstream image("perlin_noise.bmp", std::ios_base::binary);
+            std::ofstream image("perlin_noise_" + std::to_string(octaves) + ".bmp", std::ios_base::binary);
             for (const auto& b : bmpHeaders) {
                 image << b;
             }
             for (uint32_t y = 0; y < height; ++y) {
                 for (uint32_t x = 0; x < width; ++x) {
                     float noiseVal = std::min(std::max((noise(x / res, y / res, octaves) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-                    // uint8_t color = static_cast< uint8_t >(round(255 * noiseVal));
-                    // image << color << color << color;
+                    uint8_t color = static_cast< uint8_t >(round(255 * noiseVal));
+                    image << color << color << color;
                     
-                    if (x < 32 && y < 24) { // окно камеры
-                        image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
-                    } else 
+                    // if (x < 32 && y < 24) { // окно камеры
+                    //     image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
+                    // } else 
 
-                    if (noiseVal < 0.33) {
-                        image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
-                    } else if (noiseVal < 0.4) {
-                        image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
-                    } else if (noiseVal < 0.45) {
-                        image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
-                    } else if (noiseVal > 0.7) {
-                        image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
-                    } else {
-                        image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
-                    } 
+                    // if (noiseVal < 0.33) {
+                    //     image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
+                    // } else if (noiseVal < 0.4) {
+                    //     image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
+                    // } else if (noiseVal < 0.45) {
+                    //     image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
+                    // } else if (noiseVal > 0.7) {
+                    //     image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
+                    // } else {
+                    //     image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
+                    // } 
                 }
                 for (uint32_t i = 0; i < padSize; ++i) {
                     image << static_cast< uint8_t >(0);

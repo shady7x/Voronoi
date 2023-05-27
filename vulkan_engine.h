@@ -1,9 +1,12 @@
 #pragma once
 
+#define GLM_FORCE_RADIANS
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <vector>
 #include <array>
@@ -29,6 +32,12 @@ struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
 };
 
 struct Vertex {
@@ -67,7 +76,8 @@ struct Vertex {
 
 class VulkanEngine {
     public:
-        std::vector< Vertex > v;
+        std::vector< Vertex > vertices;
+        std::vector< uint32_t > indices;
         void run();
     private:
         const std::vector<const char*> validationLayers = {
@@ -102,13 +112,20 @@ class VulkanEngine {
         std::vector<VkFramebuffer> swapChainFramebuffers;
 
         VkRenderPass renderPass;
+        VkDescriptorSetLayout descriptorSetLayout;
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
 
         VkCommandPool commandPool;
+        std::vector< VkCommandBuffer > commandBuffers;
+
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
         VkBuffer vertexBuffer;
         VkDeviceMemory vertexBufferMemory;
-        std::vector< VkCommandBuffer > commandBuffers;
+        std::vector< VkBuffer > uniformBuffers;
+        std::vector< VkDeviceMemory > uniformBuffersMemory;
+        std::vector< void* > uniformBuffersMapped;
 
         std::vector< VkSemaphore > imageAvailableSemaphores;
         std::vector< VkSemaphore > renderFinishedSemaphores;
@@ -127,16 +144,19 @@ class VulkanEngine {
         void createSwapChain();
         void createImageViews();
         void createRenderPass();
+        void createDescriptorSetLayout();
         void createGraphicsPipeline();
         void createFramebuffers();
         void createCommandPool();
         void createVertexBuffer();
         void createIndexBuffer();
+        void createUniformBuffers();
         void createCommandBuffer();
         void createSyncObjects();
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         void recreateSwapChain();
+        void updateUniformBuffer(uint32_t currentImage);
         void drawFrame();
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);

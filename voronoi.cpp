@@ -516,51 +516,51 @@ int main(int argc, char** argv) {
 	int32_t width = 1024, height = 768, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(512, 512, 64, 1);
-	int32_t regionSize = 32, regionPad = 4; 
-	std::default_random_engine engine(seed);
-    std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
-	std::vector < Cell* > cells;
-	std::map< int32_t, glm::vec3 > colors;
+	perlin.saveImage(256, 256, 64, 4);
+	// int32_t regionSize = 32, regionPad = 4; 
+	// std::default_random_engine engine(seed);
+    // std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
+	// std::vector < Cell* > cells;
+	// std::map< int32_t, glm::vec3 > colors;
 
 
 	
-	for (int32_t i = 0; i < height / regionSize; ++i) {
-		for (int32_t j = 0; j < width / regionSize; ++j) {
-			double x = regionDistr(engine), y = regionDistr(engine);
-			// x = y = regionSize / 2;
-			if (i == 0) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
-			} else if (i == height / regionSize - 1) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + j * regionSize, y + (i + 1) * regionSize));
-			}
-			if (j == 0) {
-				x = y = regionSize / 2; 
-				cells.push_back(new Cell(x + (j - 1) * regionSize, y + i * regionSize));
-			} else if (j == width / regionSize - 1) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
-			}
-			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
+	// for (int32_t i = 0; i < height / regionSize; ++i) {
+	// 	for (int32_t j = 0; j < width / regionSize; ++j) {
+	// 		double x = regionDistr(engine), y = regionDistr(engine);
+	// 		// x = y = regionSize / 2;
+	// 		if (i == 0) {
+	// 			x = y = regionSize / 2;
+	// 			cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
+	// 		} else if (i == height / regionSize - 1) {
+	// 			x = y = regionSize / 2;
+	// 			cells.push_back(new Cell(x + j * regionSize, y + (i + 1) * regionSize));
+	// 		}
+	// 		if (j == 0) {
+	// 			x = y = regionSize / 2; 
+	// 			cells.push_back(new Cell(x + (j - 1) * regionSize, y + i * regionSize));
+	// 		} else if (j == width / regionSize - 1) {
+	// 			x = y = regionSize / 2;
+	// 			cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
+	// 		}
+	// 		cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 
-			float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 1) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-			if (noiseVal < 0.33) {
-				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
-			} else if (noiseVal < 0.4) {
-				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
-			} else if (noiseVal < 0.45) {
-				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
-			} else if (noiseVal > 0.7) {
-				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
-			} else {
-				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
-			}
+	// 		float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 1) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+	// 		if (noiseVal < 0.33) {
+	// 			colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
+	// 		} else if (noiseVal < 0.4) {
+	// 			colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
+	// 		} else if (noiseVal < 0.45) {
+	// 			colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
+	// 		} else if (noiseVal > 0.7) {
+	// 			colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
+	// 		} else {
+	// 			colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
+	// 		}
 
-		}
-	}
-	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
+	// 	}
+	// }
+	// sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
 	
 
@@ -587,38 +587,57 @@ int main(int argc, char** argv) {
 	// 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
 	// }
 
-	voronoi(cells, 0, cells.size());
+	// voronoi(cells, 0, cells.size());
 
-	std::uniform_real_distribution< float > R(0.1, 0.9);
-	std::uniform_real_distribution< float > G(0.1, 0.9);
-	std::uniform_real_distribution< float > B(0.1, 0.9);
-	std::vector< Vertex > vrtx;
-	for (size_t i = 0; i < cells.size(); ++i) {
-		if (cells[i]->value == 0) continue;
-		// printCell(cells[i]);
-		auto curr = cells[i]->head;
-		glm::vec3 color{ R(engine), G(engine), B(engine) };
-		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 1.0, 0.0, 0.0 } };
-		do {
-			auto start = curr->getStart();
-			auto end = curr->getEnd();
-			if (start != nullptr && end != nullptr) {
-				Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
-				vrtx.emplace_back(a);
-				vrtx.emplace_back(c);
-				vrtx.emplace_back(b);
-			}
-			curr = curr->next;
-		} while (curr != cells[i]->head);
-	}
-	VulkanEngine vulkanEngine;
-	vulkanEngine.v = vrtx;
-    try {
-        vulkanEngine.run();
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+	// std::uniform_real_distribution< float > R(0.1, 0.9);
+	// std::uniform_real_distribution< float > G(0.1, 0.9);
+	// std::uniform_real_distribution< float > B(0.1, 0.9);
+	// std::vector< Vertex > vertices;
+	// std::vector< uint32_t > indices;
+	// uint32_t index = 0;
+	// for (size_t i = 0; i < cells.size(); ++i) {
+	// 	if (cells[i]->value == 0) continue;
+	// 	// printCell(cells[i]);
+	// 	auto curr = cells[i]->head;
+	// 	glm::vec3 color{ R(engine), G(engine), B(engine) };
+	// 	Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 1.0, 0.0, 0.0 } };
+	// 	uint32_t aIndex = index++;
+	// 	vertices.emplace_back(a);
+	// 	do {
+	// 		auto start = curr->getStart();
+	// 		auto end = curr->getEnd();
+	// 		if (start != nullptr && end != nullptr) {
+	// 			Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+	// 			Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+	// 			vertices.emplace_back(c);
+	// 			vertices.emplace_back(b);
+	// 			indices.emplace_back(aIndex);
+	// 			indices.emplace_back(index++);
+	// 			indices.emplace_back(index++);
+	// 		}
+	// 		curr = curr->next;
+	// 	} while (curr != cells[i]->head);
+	// }
+
+	// const std::vector<Vertex> vertices1 = {
+	// 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+	// 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+	// 	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+	// 	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}
+	// };
+
+	// const std::vector<uint32_t> indices1 = {
+	// 	0, 1, 2, 2, 3, 0
+	// };
+
+	// VulkanEngine vulkanEngine;
+	// vulkanEngine.vertices = vertices1;
+	// vulkanEngine.indices = indices1;
+    // try {
+    //     vulkanEngine.run();
+    // } catch (const std::exception& e) {
+    //     std::cerr << e.what() << std::endl;
+    //     return EXIT_FAILURE;
+    // }
 	return 0;
 }

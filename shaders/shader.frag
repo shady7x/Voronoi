@@ -6,15 +6,15 @@ layout(location = 1) noperspective in vec3 outline;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    
+    outColor = vec4(color, 1.0);
 
-    float distX = outline.x / length(vec2(dFdx(outline.x), dFdy(outline.x)));
-    float distY = outline.y / length(vec2(dFdx(outline.y), dFdy(outline.y)));
-    float distZ = outline.z / length(vec2(dFdx(outline.z), dFdy(outline.z)));
+    // float distX = outline.x / length(vec2(dFdx(outline.x), dFdy(outline.x)));
+    // float distY = outline.y / length(vec2(dFdx(outline.y), dFdy(outline.y)));
+    // float distZ = outline.z / length(vec2(dFdx(outline.z), dFdy(outline.z)));
 
-    if (distX < 1.0 || distY < 1.0 || distZ < 1.0) {
-        outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    } else {
-        outColor = vec4(color, 1.0);
-    } 
+    // if (distX < 1.0 || distY < 1.0 || distZ < 1.0) {
+    //     outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    // } else {
+    //     outColor = vec4(color, 1.0);
+    // } 
 }
