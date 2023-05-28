@@ -15,7 +15,7 @@ layout(location = 1) noperspective out vec3 outline;
 
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0);
+    gl_Position = /*ubo.proj * ubo.view * ubo.model */ vec4(inPosition, 0.0, 1.0);
     color = inColor;
     outline = inOutline;
 }

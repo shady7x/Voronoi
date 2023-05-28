@@ -516,7 +516,7 @@ int main(int argc, char** argv) {
 	int32_t width = 1024, height = 768, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(256, 256, 64, 4);
+	perlin.saveImage(256, 256, 64, 1);
 	int32_t regionSize = 32, regionPad = 4; 
 	std::default_random_engine engine(seed);
     std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
@@ -594,7 +594,7 @@ int main(int argc, char** argv) {
 		if (cells[i]->value == 0) continue;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 1.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
