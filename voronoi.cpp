@@ -491,21 +491,22 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 }
 
 void printCell(Cell* cell) {
-	auto curr = cell->head;
-	int k = 0;
-	do {
-		// std::cout << "HalfEdge: " << curr;
-		// if (curr->getStart() != nullptr) {
-		// 	std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
-		// }
-		// if (curr->getEnd() != nullptr) {
-		// 	std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
-		// }
-		// std::cout << " " << curr->getLine().toString() << " " << curr->twin <<std::endl;
-		k++;
-		curr = curr->next;
-	} while (curr != cell->head);
-	std::cout << k << ' ';
+	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
+	// auto curr = cell->head;
+	// int k = 0;
+	// do {
+	// 	// std::cout << "HalfEdge: " << curr;
+	// 	// if (curr->getStart() != nullptr) {
+	// 	// 	std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
+	// 	// }
+	// 	// if (curr->getEnd() != nullptr) {
+	// 	// 	std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
+	// 	// }
+	// 	// std::cout << " " << curr->getLine().toString() << " " << curr->twin <<std::endl;
+	// 	k++;
+	// 	curr = curr->next;
+	// } while (curr != cell->head);
+	// std::cout << k << ' ';
 }
 
 
@@ -592,17 +593,17 @@ int main(int argc, char** argv) {
 	uint32_t index = 0;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-		// printCell(cells[i]);
+		printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / width - 1, 1 - 2 * cells[i]->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / width - 1, 2 * cells[i]->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { 2 * start->x / width - 1, 1 - 2 * start->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / width - 1, 1 - 2 * end->y / height }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+				Vertex b = { { 2 * start->x / width - 1, 2 * start->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / width - 1, 2 * end->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
@@ -613,16 +614,16 @@ int main(int argc, char** argv) {
 		} while (curr != cells[i]->head);
 	}
 
-	// const std::vector<Vertex> vertices1 = {
-	// 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
-	// 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
-	// 	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
-	// 	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}
-	// };
+	const std::vector<Vertex> vertices1 = {
+		{{-1.0, -1.0f, 5.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+		{{1.0f, -1.0f, 5.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+		{{1.0f, 1.0f, 5.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+		{{-1.0f, 1.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}}
+	};
 
-	// const std::vector<uint32_t> indices1 = {
-	// 	0, 1, 2, 2, 3, 0
-	// };
+	const std::vector<uint32_t> indices1 = {
+		0, 1, 2, 2, 3, 0
+	};
 
 	VulkanEngine vulkanEngine;
 	vulkanEngine.vertices = vertices;

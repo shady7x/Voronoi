@@ -1,12 +1,12 @@
 #pragma once
 
-#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <vector>
 #include <array>
@@ -41,7 +41,7 @@ struct UniformBufferObject {
 };
 
 struct Vertex {
-    glm::vec2 pos;
+    glm::vec3 pos;
     glm::vec3 color;
     glm::vec3 outline;
 
@@ -57,7 +57,7 @@ struct Vertex {
         std::array< VkVertexInputAttributeDescription, 3 > attributeDescriptions{};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
         attributeDescriptions[1].binding = 0;
