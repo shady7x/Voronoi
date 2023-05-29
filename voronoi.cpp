@@ -511,10 +511,10 @@ void printCell(Cell* cell) {
 
 
 int main(int argc, char** argv) {
-	freopen("input.txt", "r", stdin);
-	freopen("output.txt", "w", stdout);
+	// freopen("input.txt", "r", stdin);
+	// freopen("output.txt", "w", stdout);
 
-	int32_t width = 1024, height = 768, seed = 1684952532;// 1683966317, 1684952532
+	int32_t width = 256 * 32, height = 32* 256, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(256, 256, 64, 1);
@@ -593,7 +593,7 @@ int main(int argc, char** argv) {
 	uint32_t index = 0;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-		printCell(cells[i]);
+		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 		Vertex a = { { 2 * cells[i]->x / width - 1, 2 * cells[i]->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
