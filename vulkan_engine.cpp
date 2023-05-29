@@ -6,13 +6,16 @@
 #include <limits>
 #include <set>
 #include <chrono>
+#include <thread>
 
 #include "vulkan_engine.h"
 
 void VulkanEngine::run() {
     initWindow();
     initVulkan();
-    mainLoop();
+    std::thread input(&VulkanEngine::inputLoop, this);
+    drawLoop();
+    input.join();
     cleanup();
 }
 
@@ -47,18 +50,32 @@ void VulkanEngine::initVulkan() {
     createSyncObjects();
 }
 
-void VulkanEngine::mainLoop() {
-    bool running = true;
+void VulkanEngine::inputLoop() {
     SDL_Event event;
-    while (running) {
-        while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) {
+    while(SDL_WaitEvent(&event)) {
+        switch (event.type) {
+            case SDL_QUIT:
                 running = false;
+                return;
+            case SDL_MOUSEBUTTONDOWN:
+                std::cout << "SDL_MOUSEBUTTONDOWN" << std::endl;
                 break;
-            }
+            case SDL_MOUSEBUTTONUP:
+                std::cout << "SDL_MOUSEBUTTONUP" << std::endl;
+                break;
+            case SDL_MOUSEMOTION:
+                std::cout << "SDL_MOUSEMOTION" << std::endl;
+                break;
+            default:
+                std::cout << "EventType: " << event.type << std::endl;
         }
-        drawFrame();
     } 
+}
+
+void VulkanEngine::drawLoop() {
+    while (running) {
+        drawFrame();
+    }
     vkDeviceWaitIdle(vulkanDevice);
 }
 

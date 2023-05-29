@@ -8,6 +8,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <iostream>
+#include <atomic>
 #include <vector>
 #include <array>
 #include <fstream>
@@ -134,9 +135,12 @@ class VulkanEngine {
         std::vector< VkSemaphore > renderFinishedSemaphores;
         std::vector< VkFence > inFlightFences;
 
+        std::atomic< bool > running = true;
+
         void initWindow();
         void initVulkan();
-        void mainLoop();
+        void inputLoop();
+        void drawLoop();
         void cleanupSwapChain();
         void cleanup();
 

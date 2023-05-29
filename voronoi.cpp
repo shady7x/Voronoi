@@ -561,7 +561,6 @@ int main(int argc, char** argv) {
 	}
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
-	
 
 	// int n;
 	// std::cin >> n;	
@@ -586,6 +585,7 @@ int main(int argc, char** argv) {
 	// 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
 	// }
 
+	std::cout << cells.size() << std::endl;
 	voronoi(cells, 0, cells.size());
 
 	std::vector< Vertex > vertices;
