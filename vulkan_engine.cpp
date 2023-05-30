@@ -57,8 +57,19 @@ void VulkanEngine::inputLoop() {
             case SDL_QUIT:
                 running = false;
                 return;
+
+            case SDL_MOUSEBUTTONUP:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    moveX = moveY = 0;
+                }
+                break;
             case SDL_MOUSEMOTION:
-                std::cout << event.motion.x << ' ' << event.motion.y << std::endl;
+                if (event.motion.state & SDL_BUTTON_LMASK) {
+                    float x = event.motion.x - (WIDTH - 1) / 2.0f;
+                    float y = (HEIGHT - 1) / 2.0f -  event.motion.y;
+                    moveX = x / sqrt(x * x + y * y);
+                    moveY = y / sqrt(x * x + y * y);
+                }
                 break;
             default:
                 if (!windowVisible) {
@@ -829,20 +840,28 @@ void VulkanEngine::recreateSwapChain() {
 }
 
 void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
+    // static auto startTime = std::chrono::high_resolution_clock::now();
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    // auto currentTime = std::chrono::high_resolution_clock::now();
+    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    UniformBufferObject ubo{};
-    ubo.model = glm::mat4(1.0f);
-    ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
+    ubo.model = glm::translate(ubo.model, glm::vec3(-moveX.load() / 1000, -moveY.load() / 1000, 0));
     // ubo.proj[1][1] *= -1;
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void VulkanEngine::drawFrame() {
+    static uint32_t fps = 0;
+    static auto lastSecondTime = std::chrono::high_resolution_clock::now();
+    auto currentSecondTime = std::chrono::high_resolution_clock::now();
+
+    if (std::chrono::duration<float, std::chrono::milliseconds::period>(currentSecondTime - lastSecondTime).count() >= 1000) {
+        lastSecondTime = currentSecondTime;
+        std::cout << fps << std::endl;
+        fps = 0;
+    }
+    
+    fps++;
     vkWaitForFences(vulkanDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;

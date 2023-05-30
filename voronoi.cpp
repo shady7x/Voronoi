@@ -544,7 +544,7 @@ int main(int argc, char** argv) {
 			}
 			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
 
-			float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 1) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+			float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
 			if (noiseVal < 0.33) {
 				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
 			} else if (noiseVal < 0.4) {
