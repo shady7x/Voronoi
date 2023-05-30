@@ -57,14 +57,8 @@ void VulkanEngine::inputLoop() {
             case SDL_QUIT:
                 running = false;
                 return;
-            case SDL_MOUSEBUTTONDOWN:
-                std::cout << "SDL_MOUSEBUTTONDOWN" << std::endl;
-                break;
-            case SDL_MOUSEBUTTONUP:
-                std::cout << "SDL_MOUSEBUTTONUP" << std::endl;
-                break;
             case SDL_MOUSEMOTION:
-                std::cout << "SDL_MOUSEMOTION" << std::endl;
+                std::cout << event.motion.x << ' ' << event.motion.y << std::endl;
                 break;
             default:
                 std::cout << "EventType: " << event.type << std::endl;
