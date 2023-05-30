@@ -49,17 +49,20 @@ class PerlinNoise2D {
                     // if (x < 32 && y < 24) { // окно камеры
                     //     image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
                     // } else 
-                    if (noiseVal < 0.33) {
+
+                    if (noiseVal < 0.36) {
                         image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
                     } else if (noiseVal < 0.4) {
                         image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
                     } else if (noiseVal < 0.45) {
                         image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
-                    } else if (noiseVal > 0.65) {
+                    } else if (noiseVal > 0.7) {
+                        image << static_cast< uint8_t >(255) << static_cast< uint8_t >(255) << static_cast< uint8_t >(255);  
+                    } else if (noiseVal > 0.55) {
                         image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
                     } else {
                         image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
-                    } 
+                    }
                 }
                 for (uint32_t i = 0; i < padSize; ++i) {
                     image << static_cast< uint8_t >(0);
