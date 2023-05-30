@@ -13,9 +13,9 @@
 void VulkanEngine::run() {
     initWindow();
     initVulkan();
-    std::thread input(&VulkanEngine::inputLoop, this);
-    drawLoop();
-    input.join();
+    std::thread draw(&drawLoop, this);
+    inputLoop();
+    draw.join();
     cleanup();
 }
 
@@ -61,9 +61,18 @@ void VulkanEngine::inputLoop() {
                 std::cout << event.motion.x << ' ' << event.motion.y << std::endl;
                 break;
             default:
-                std::cout << "EventType: " << event.type << std::endl;
+                if (!windowVisible) {
+                    std::lock_guard< std::mutex > lock(windowMutex);
+                    int width = 0, height = 0;
+                    SDL_Vulkan_GetDrawableSize(window, &width, &height);
+                    WIDTH = width;
+                    HEIGHT = height;
+                    windowVisible = !(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED || WIDTH == 0 || HEIGHT == 0);
+                    windowCv.notify_one();
+                }
+                break;
         }
-    } 
+    }
 }
 
 void VulkanEngine::drawLoop() {
@@ -285,9 +294,7 @@ void VulkanEngine::createSwapChain() {
     if (swapChainSupport.capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         swapChainExtent = swapChainSupport.capabilities.currentExtent;
     } else {
-        int width = 0, height = 0;
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
-        VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+        VkExtent2D actualExtent = { static_cast< uint32_t >(WIDTH), static_cast< uint32_t >(HEIGHT) };
         actualExtent.width = std::clamp(actualExtent.width, swapChainSupport.capabilities.minImageExtent.width, swapChainSupport.capabilities.maxImageExtent.width);
         actualExtent.height = std::clamp(actualExtent.height, swapChainSupport.capabilities.minImageExtent.height, swapChainSupport.capabilities.maxImageExtent.height);
         swapChainExtent = actualExtent;
@@ -798,7 +805,7 @@ void VulkanEngine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t i
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast< uint32_t >(indices.size()), 1, 0, 0, 0);
 
 
         // vkCmdDraw(commandBuffer, vertices.size(), 1, 0, 0);
@@ -811,16 +818,11 @@ void VulkanEngine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t i
 }
 
 void VulkanEngine::recreateSwapChain() {
-    int width = 0, height = 0;
-    SDL_Event event;
-    SDL_Vulkan_GetDrawableSize(window, &width, &height);
-    while (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED || width == 0 || height == 0 ) {
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
-        SDL_WaitEvent(&event);
-    }
+    windowVisible = false;
+    std::unique_lock lock(windowMutex);
+    windowCv.wait(lock, [this] { return windowVisible.load(); });
     vkDeviceWaitIdle(vulkanDevice);
     cleanupSwapChain();
-
     createSwapChain();
     createImageViews();
     createFramebuffers();

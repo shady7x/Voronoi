@@ -9,6 +9,8 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <vector>
 #include <array>
 #include <fstream>
@@ -87,13 +89,16 @@ class VulkanEngine {
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
-        const uint32_t WIDTH = 1024;
-        const uint32_t HEIGHT = 768;
+
         const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+        std::atomic< uint32_t > WIDTH = 1024;
+        std::atomic< uint32_t > HEIGHT = 768;
 
         uint32_t currentFrame = 0;
 
         SDL_Window* window;
+        std::mutex windowMutex;
+        std::condition_variable windowCv;
 
         VkInstance instance;
         VkDebugUtilsMessengerEXT debugMessenger;
@@ -136,6 +141,7 @@ class VulkanEngine {
         std::vector< VkFence > inFlightFences;
 
         std::atomic< bool > running = true;
+        std::atomic< bool > windowVisible = true;
 
         void initWindow();
         void initVulkan();
