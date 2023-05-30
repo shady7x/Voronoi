@@ -91,13 +91,13 @@ class VulkanEngine {
         };
 
         const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-        std::atomic< uint32_t > WIDTH = 1024;
-        std::atomic< uint32_t > HEIGHT = 768;
+        std::atomic< uint32_t > WIDTH = 1600;
+        std::atomic< uint32_t > HEIGHT = 900;
 
         std::atomic< float > moveX = 0, moveY = 0;
         UniformBufferObject ubo {
             glm::mat4(1.0f),
-            glm::lookAt(glm::vec3(0.0f, -0.2f, -0.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, -0.0f, -0.8f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)
         };
 

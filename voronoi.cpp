@@ -492,81 +492,80 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 
 void printCell(Cell* cell) {
 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
-	// auto curr = cell->head;
-	// int k = 0;
-	// do {
-	// 	// std::cout << "HalfEdge: " << curr;
-	// 	// if (curr->getStart() != nullptr) {
-	// 	// 	std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
-	// 	// }
-	// 	// if (curr->getEnd() != nullptr) {
-	// 	// 	std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
-	// 	// }
-	// 	// std::cout << " " << curr->getLine().toString() << " " << curr->twin <<std::endl;
-	// 	k++;
-	// 	curr = curr->next;
-	// } while (curr != cell->head);
-	// std::cout << k << ' ';
+	auto curr = cell->head;
+	int k = 0;
+	do {
+		std::cout << "HalfEdge: " << curr;
+		if (curr->getStart() != nullptr) {
+			std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
+		}
+		if (curr->getEnd() != nullptr) {
+			std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
+		}
+		std::cout << "   |   " << curr->getLine().toString() << " " << curr->twin <<std::endl;
+		k++;
+		curr = curr->next;
+	} while (curr != cell->head);
+	std::cout << k << std::endl;
 }
 
+glm::vec3 getColor(float noiseVal) {
+	if (noiseVal < 0.36) {
+		return {0, 0, 0.4};
+	} else if (noiseVal < 0.4) {
+		return {0.05, 0.32, 0.53};
+	} else if (noiseVal < 0.45) {
+		return {0.87, 0.76, 0.58};
+	} else if (noiseVal > 0.7) {
+		return {1.0, 1.0, 1.0};
+	} else if (noiseVal > 0.55) {
+		return {0.6, 0.6, 0.6};
+	} else {
+		return {0.2, 0.6, 0.2};
+	}
+}
 
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
 	// freopen("output.txt", "w", stdout);
 
-	int32_t width = 256 * 32, height = 32* 256, seed = 1684952532;// 1683966317, 1684952532
+	int32_t regionSize = 32, mapWidth = 256 * regionSize, mapHeight = 256 * regionSize, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(256, 256, 64, 1);
-	int32_t regionSize = 32, regionPad = 4; 
+	perlin.saveImage(256, 256, 64, 3);
 	std::default_random_engine engine(seed);
-    std::uniform_real_distribution< double > regionDistr(regionPad, regionSize - regionPad);
+    std::uniform_real_distribution< double > regionDistr(4, regionSize - 4);
 	std::vector < Cell* > cells;
 	std::map< int32_t, glm::vec3 > colors;
 	
-	for (int32_t i = 0; i < height / regionSize; ++i) {
-		for (int32_t j = 0; j < width / regionSize; ++j) {
+	for (int32_t i = 0; i < mapHeight / regionSize; ++i) {
+		for (int32_t j = 0; j < mapWidth / regionSize; ++j) {
 			double x = regionDistr(engine), y = regionDistr(engine);
 			// x = y = regionSize / 2;
 			if (i == 0) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
-			} else if (i == height / regionSize - 1) {
+			} else if (i == mapHeight / regionSize - 1) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + j * regionSize, y + (i + 1) * regionSize));
 			}
 			if (j == 0) {
 				x = y = regionSize / 2; 
 				cells.push_back(new Cell(x + (j - 1) * regionSize, y + i * regionSize));
-			} else if (j == width / regionSize - 1) {
+			} else if (j == mapWidth / regionSize - 1) {
 				x = y = regionSize / 2;
 				cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
 			}
-			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * width / regionSize + j + 1));
-
-			float noiseVal = std::min(std::max((perlin.noise(j / 64.0, i / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-			if (noiseVal < 0.33) {
-				colors[i * width / regionSize + j + 1] = {0, 0, 0.4};
-			} else if (noiseVal < 0.4) {
-				colors[i * width / regionSize + j + 1] = {0.05, 0.32, 0.53};
-			} else if (noiseVal < 0.45) {
-				colors[i * width / regionSize + j + 1] = {0.87, 0.76, 0.58};
-			} else if (noiseVal > 0.7) {
-				colors[i * width / regionSize + j + 1] = {0.6, 0.6, 0.6};
-			} else {
-				colors[i * width / regionSize + j + 1] = {0.2, 0.6, 0.2};
-			}
-
+			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * mapWidth / regionSize + j + 1));
 		}
 	}
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
-
 	// int n;
 	// std::cin >> n;	
 	// std::vector < Cell* > inputCells;
-	// std::uniform_real_distribution< double > xDistribution(0, width);
-	// std::uniform_real_distribution< double > yDistribution(0, height);
+	// std::uniform_real_distribution< double > xDistribution(0, mapWidth);
+	// std::uniform_real_distribution< double > yDistribution(0, mapHeight);
 	// for (int i = 0; i < n; ++i) {
 	// 	double x, y;
 	// 	//std::cin >> x >> y;
@@ -584,7 +583,6 @@ int main(int argc, char** argv) {
 	// for (const auto& cell : cells) {
 	// 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
 	// }
-
 	std::cout << cells.size() << std::endl;
 	voronoi(cells, 0, cells.size());
 
@@ -593,17 +591,25 @@ int main(int argc, char** argv) {
 	uint32_t index = 0;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
+
+		float aNoiseVal = std::min(std::max((perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
+		
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / width - 1, 2 * cells[i]->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+	
+
+
+		Vertex a = { { 2 * cells[i]->x / mapWidth - 1, 2 * cells[i]->y / mapHeight - 1, -aNoiseVal / 3 }, getColor(aNoiseVal), { 1.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				Vertex b = { { 2 * start->x / width - 1, 2 * start->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / width - 1, 2 * end->y / height - 1, 0.0f }, colors[cells[i]->value], { 0.0, 0.0, 0.0 } };
+				float bNoiseVal = std::min(std::max((perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0);
+				float cNoiseVal = std::min(std::max((perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0);
+				Vertex b = { { 2 * start->x / mapWidth - 1, 2 * start->y / mapHeight - 1, -bNoiseVal / 3 }, getColor(aNoiseVal), { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / mapWidth - 1, 2 * end->y / mapHeight - 1, -cNoiseVal / 3 }, getColor(aNoiseVal), { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);

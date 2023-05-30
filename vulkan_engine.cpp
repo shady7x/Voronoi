@@ -845,7 +845,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     // auto currentTime = std::chrono::high_resolution_clock::now();
     // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    ubo.model = glm::translate(ubo.model, glm::vec3(-moveX.load() / 1000, -moveY.load() / 1000, 0));
+    ubo.model = glm::translate(ubo.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, 0));
     // ubo.proj[1][1] *= -1;
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
