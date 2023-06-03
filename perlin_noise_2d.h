@@ -6,6 +6,8 @@
 #include <random>
 #include <glm/glm.hpp>
 
+#include "map_tile.h"
+
 class PerlinNoise2D {
     public:
         void saveImage(uint32_t width, uint32_t height, float res = 2, int32_t octaves = 1) {
@@ -41,28 +43,15 @@ class PerlinNoise2D {
             }
             for (uint32_t y = 0; y < height; ++y) {
                 for (uint32_t x = 0; x < width; ++x) {
-                    float noiseVal = std::min(std::max((noise(x / res, y / res, octaves) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-                    
+
                     // uint8_t color = static_cast< uint8_t >(round(255 * noiseVal));
                     // image << color << color << color;
-                    
                     // if (x < 32 && y < 24) { // окно камеры
                     //     image << static_cast< uint8_t >(0) << static_cast< uint8_t >(0) << static_cast< uint8_t >(255);
                     // } else 
 
-                    if (noiseVal < 0.36) {
-                        image << static_cast< uint8_t >(102) << static_cast< uint8_t >(0) << static_cast< uint8_t >(0);
-                    } else if (noiseVal < 0.4) {
-                        image << static_cast< uint8_t >(137) << static_cast< uint8_t >(82) << static_cast< uint8_t >(15);
-                    } else if (noiseVal < 0.45) {
-                        image << static_cast< uint8_t >(148) << static_cast< uint8_t >(195) << static_cast< uint8_t >(223);  
-                    } else if (noiseVal > 0.7) {
-                        image << static_cast< uint8_t >(255) << static_cast< uint8_t >(255) << static_cast< uint8_t >(255);  
-                    } else if (noiseVal > 0.55) {
-                        image << static_cast< uint8_t >(153) << static_cast< uint8_t >(153) << static_cast< uint8_t >(153);
-                    } else {
-                        image << static_cast< uint8_t >(51) << static_cast< uint8_t >(153) << static_cast< uint8_t >(51);
-                    }
+                    glm::vec3 color = MapTile::getColor(MapTile::getTile(noise(x / res, y / res, octaves)));
+                    image << static_cast<uint8_t>(round(255 * color.b)) << static_cast<uint8_t>(round(255 * color.g)) << static_cast<uint8_t>(round(255 * color.r));
                 }
                 for (uint32_t i = 0; i < padSize; ++i) {
                     image << static_cast< uint8_t >(0);
@@ -80,6 +69,7 @@ class PerlinNoise2D {
             }
         }
 
+        // возвращает значение шума [0, 1]
         float noise(float x, float y, int32_t octaves = 1, float persistence = 0.5f) {
             float amplitude = 1, max = 0, result = 0;
             while (octaves-- > 0) {
@@ -99,7 +89,7 @@ class PerlinNoise2D {
                 x *= 2;
                 y *= 2;
             }
-            return result / max;
+            return std::min(std::max(((result / max) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем от [-sqrt(2)/2, sqrt(2)/2] к [0, 1]
         }
 
     private:

@@ -6,13 +6,14 @@
 #include <map>
 #include <cmath>
 #include <memory>
+#include <limits>
 #include "vulkan_engine.h"
 #include "perlin_noise_2d.h"
 
 const double EPS = 1e-10;
 
 int fuzzyCompare(double val1, double val2) {
-	double eps = (fabs(val2) + 1) * EPS;
+	double eps = (abs(val2) + 1) * EPS;
 	double diff = val1 - val2;
 	return diff < -eps ? -1 : (diff > eps ? 1 : 0);
 }
@@ -508,57 +509,66 @@ void printCell(Cell* cell) {
 	} while (curr != cell->head);
 	std::cout << k << std::endl;
 }
-
-glm::vec3 getColor(float noiseVal) {
-	if (noiseVal < 0.36) {
-		return {0, 0, 0.4};
-	} else if (noiseVal < 0.4) {
-		return {0.05, 0.32, 0.53};
-	} else if (noiseVal < 0.45) {
-		return {0.87, 0.76, 0.58};
-	} else if (noiseVal > 0.7) {
-		return {1.0, 1.0, 1.0};
-	} else if (noiseVal > 0.55) {
-		return {0.6, 0.6, 0.6};
-	} else {
-		return {0.2, 0.6, 0.2};
-	}
-}
+ 
 
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
 	// freopen("output.txt", "w", stdout);
-
-	int32_t regionSize = 32, mapWidth = 256 * regionSize, mapHeight = 256 * regionSize, seed = 1684952532;// 1683966317, 1684952532
+	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(256, 256, 64, 3);
-	std::default_random_engine engine(seed);
-    std::uniform_real_distribution< double > regionDistr(4, regionSize - 4);
-	std::vector < Cell* > cells;
-	std::map< int32_t, glm::vec3 > colors;
-	
-	for (int32_t i = 0; i < mapHeight / regionSize; ++i) {
-		for (int32_t j = 0; j < mapWidth / regionSize; ++j) {
-			double x = regionDistr(engine), y = regionDistr(engine);
-			// x = y = regionSize / 2;
-			if (i == 0) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + j * regionSize, y + (i - 1) * regionSize));
-			} else if (i == mapHeight / regionSize - 1) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + j * regionSize, y + (i + 1) * regionSize));
-			}
-			if (j == 0) {
-				x = y = regionSize / 2; 
-				cells.push_back(new Cell(x + (j - 1) * regionSize, y + i * regionSize));
-			} else if (j == mapWidth / regionSize - 1) {
-				x = y = regionSize / 2;
-				cells.push_back(new Cell(x + (j + 1) * regionSize, y + i * regionSize));
-			}
-			cells.push_back(new Cell(x + j * regionSize, y + i * regionSize, i * mapWidth / regionSize + j + 1));
+	perlin.saveImage(mapWidth, mapHeight, 64, 3);
+
+	std::vector<Cell*> cells;
+	std::vector<MapTile::Type> tiles;
+	for (int32_t i = 0; i < mapHeight; ++i) {
+		for (int32_t j = 0; j < mapWidth; ++j) {
+			cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + i * regionSize, i * mapWidth + j + 1));
+			tiles.push_back(MapTile::getTile(perlin.noise(j / 64.0f, i / 64.0f, 3)));
 		}
 	}
+
+	std::default_random_engine engine(time(0));
+    std::uniform_real_distribution<double> regionDistr(-0.3 * regionSize, 0.3 * regionSize);
+	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
+	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
+		
+
+		if (i % mapWidth != 0 && i % mapWidth != mapWidth - 1) {
+			int32_t
+			if (tiles[i] == MapTile::WATER) {
+				for (int32_t k = 0; k < 4; ++k) {
+					if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
+						cells[i]->x += dx[k] * 0.1 * regionSize;
+						cells[i]->y += dy[k] * 0.1 * regionSize;
+					} 
+				}
+			} else if (tiles[i] == MapTile::SHORE) {
+				for (int32_t k = 0; k < 4; ++k) {
+					if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
+						cells[i]->x += dx[k] * 0.1 * regionSize;
+						cells[i]->y += dy[k] * 0.1 * regionSize;
+					} 
+				}
+				
+			} else if (tiles[i] == MapTile::PLAIN) {
+
+			} else {
+
+			}
+		}
+	}
+
+
+	for (int32_t i = 0; i < mapHeight; ++i) {
+		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
+		cells.push_back(new Cell(regionSize / 2 + mapWidth * regionSize, regionSize / 2 + i * regionSize));
+	}
+	for (int32_t j = 0; j < mapWidth; ++j) {
+		cells.push_back(new Cell(regionSize / 2 + j * regionSize, -regionSize / 2));
+		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + mapHeight * regionSize));
+	}
+
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
 	// int n;
@@ -591,25 +601,22 @@ int main(int argc, char** argv) {
 	uint32_t index = 0;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-
-		float aNoiseVal = std::min(std::max((perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0); // Нормируем к [0, 1]
-		
+		float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3);
+		glm::vec3 aColor = MapTile::getColor(tiles[cells[i]->value - 1]);
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 	
-
-
-		Vertex a = { { 2 * cells[i]->x / mapWidth - 1, 2 * cells[i]->y / mapHeight - 1, -aNoiseVal / 3 }, getColor(aNoiseVal), { 1.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				float bNoiseVal = std::min(std::max((perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0);
-				float cNoiseVal = std::min(std::max((perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3) / sqrt(2) + 0.5), 0.0), 1.0);
-				Vertex b = { { 2 * start->x / mapWidth - 1, 2 * start->y / mapHeight - 1, -bNoiseVal / 3 }, getColor(aNoiseVal), { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / mapWidth - 1, 2 * end->y / mapHeight - 1, -cNoiseVal / 3 }, getColor(aNoiseVal), { 0.0, 0.0, 0.0 } };
+				// float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
+				// float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
@@ -619,17 +626,6 @@ int main(int argc, char** argv) {
 			curr = curr->next;
 		} while (curr != cells[i]->head);
 	}
-
-	const std::vector<Vertex> vertices1 = {
-		{{-1.0, -1.0f, 5.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
-		{{1.0f, -1.0f, 5.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
-		{{1.0f, 1.0f, 5.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
-		{{-1.0f, 1.0f, 5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}}
-	};
-
-	const std::vector<uint32_t> indices1 = {
-		0, 1, 2, 2, 3, 0
-	};
 
 	VulkanEngine vulkanEngine;
 	vulkanEngine.vertices = vertices;

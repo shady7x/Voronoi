@@ -13,7 +13,7 @@
 void VulkanEngine::run() {
     initWindow();
     initVulkan();
-    std::thread draw(&drawLoop, this);
+    std::thread draw(&VulkanEngine::drawLoop, this);
     inputLoop();
     draw.join();
     cleanup();
