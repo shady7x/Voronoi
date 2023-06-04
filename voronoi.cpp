@@ -536,32 +536,17 @@ int main(int argc, char** argv) {
 	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
 		if (i % mapWidth == 0 || i % mapWidth == mapWidth -1) continue;
 		int32_t moveX = 0, moveY = 0;
-		if (tiles[i] == MapTile::WATER) {
-			for (int32_t k = 0; k < 4; ++k) {
-				if (tiles[i + dx[k] + dy[k] * mapWidth] == MapTile::WATER && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
-					moveX += dx[k];
-					moveY += dy[k];
-				} else if (tiles[i + dx[k] + dy[k] * mapWidth] != MapTile::WATER && tiles[i + dx[k]] != MapTile::WATER && tiles[i + dy[k] * mapWidth] != MapTile::WATER) {
-					moveX -= dx[k];
-					moveY -= dy[k];
-				}
+		for (int32_t k = 0; k < 4; ++k) {
+			if (tiles[i + dx[k] + dy[k] * mapWidth] == tiles[i] && (tiles[i + dx[k]] != tiles[i] || tiles[i + dy[k] * mapWidth] != tiles[i])) {
+				moveX += dx[k];
+				moveY += dy[k];
+			} else if (tiles[i + dx[k] + dy[k] * mapWidth] != tiles[i] && tiles[i + dx[k]] != tiles[i] && tiles[i + dy[k] * mapWidth] != tiles[i]) {
+				moveX -= dx[k];
+				moveY -= dy[k];
 			}
-		} else if (tiles[i] == MapTile::SHORE) {
-			// for (int32_t k = 0; k < 4; ++k) {
-			// 	if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
-			// 		cells[i]->x += dx[k] * 0.1 * regionSize;
-			// 		cells[i]->y += dy[k] * 0.1 * regionSize;
-			// 	} 
-			// }
-			
-		} else if (tiles[i] == MapTile::PLAIN) {
-
-		} else {
-
 		}
 		cells[i]->x += round(moveX == 0 ? regionRand(engine) : (moveX < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine)))); //error
 		cells[i]->y += round(moveY == 0 ? regionRand(engine) : (moveY < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
-	
 	}
 	for (int32_t i = 0; i < mapHeight; ++i) {
 		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
