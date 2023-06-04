@@ -528,38 +528,41 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	std::default_random_engine engine(time(0));
-    std::uniform_real_distribution<double> regionDistr(-0.3 * regionSize, 0.3 * regionSize);
+	time_t seed2 = time(0);
+	std::cout << seed2 << std::endl;
+	std::default_random_engine engine(1685837735); // error 1685837735
+    std::uniform_real_distribution<double> regionRand(-0.4 * regionSize, 0.4 * regionSize);
 	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
 	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
-		
-
-		if (i % mapWidth != 0 && i % mapWidth != mapWidth - 1) {
-			int32_t
-			if (tiles[i] == MapTile::WATER) {
-				for (int32_t k = 0; k < 4; ++k) {
-					if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
-						cells[i]->x += dx[k] * 0.1 * regionSize;
-						cells[i]->y += dy[k] * 0.1 * regionSize;
-					} 
+		if (i % mapWidth == 0 || i % mapWidth == mapWidth -1) continue;
+		int32_t moveX = 0, moveY = 0;
+		if (tiles[i] == MapTile::WATER) {
+			for (int32_t k = 0; k < 4; ++k) {
+				if (tiles[i + dx[k] + dy[k] * mapWidth] == MapTile::WATER && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
+					moveX += dx[k];
+					moveY += dy[k];
+				} else if (tiles[i + dx[k] + dy[k] * mapWidth] != MapTile::WATER && tiles[i + dx[k]] != MapTile::WATER && tiles[i + dy[k] * mapWidth] != MapTile::WATER) {
+					moveX -= dx[k];
+					moveY -= dy[k];
 				}
-			} else if (tiles[i] == MapTile::SHORE) {
-				for (int32_t k = 0; k < 4; ++k) {
-					if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
-						cells[i]->x += dx[k] * 0.1 * regionSize;
-						cells[i]->y += dy[k] * 0.1 * regionSize;
-					} 
-				}
-				
-			} else if (tiles[i] == MapTile::PLAIN) {
-
-			} else {
-
 			}
+		} else if (tiles[i] == MapTile::SHORE) {
+			// for (int32_t k = 0; k < 4; ++k) {
+			// 	if (tiles[i] == tiles[i + dx[k] + dy[k] * mapWidth] && (tiles[i + dx[k]] != MapTile::WATER || tiles[i + dy[k] * mapWidth] != MapTile::WATER)) {
+			// 		cells[i]->x += dx[k] * 0.1 * regionSize;
+			// 		cells[i]->y += dy[k] * 0.1 * regionSize;
+			// 	} 
+			// }
+			
+		} else if (tiles[i] == MapTile::PLAIN) {
+
+		} else {
+
 		}
+		cells[i]->x += round(moveX == 0 ? regionRand(engine) : (moveX < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine)))); //error
+		cells[i]->y += round(moveY == 0 ? regionRand(engine) : (moveY < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
+	
 	}
-
-
 	for (int32_t i = 0; i < mapHeight; ++i) {
 		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
 		cells.push_back(new Cell(regionSize / 2 + mapWidth * regionSize, regionSize / 2 + i * regionSize));
@@ -571,30 +574,9 @@ int main(int argc, char** argv) {
 
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
-	// int n;
-	// std::cin >> n;	
-	// std::vector < Cell* > inputCells;
-	// std::uniform_real_distribution< double > xDistribution(0, mapWidth);
-	// std::uniform_real_distribution< double > yDistribution(0, mapHeight);
-	// for (int i = 0; i < n; ++i) {
-	// 	double x, y;
-	// 	//std::cin >> x >> y;
-	// 	x = xDistribution(engine);
-	// 	y = yDistribution(engine);
-	// 	inputCells.push_back(new Cell(x, y, i + 1));
-	// }
-	// sort(inputCells.begin(), inputCells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
-	// for (size_t i = 0; i < inputCells.size(); ++i) {
-	// 	if (i == 0 || inputCells[i]->fuzzyEquals(inputCells[i - 1]) == false) {
-	// 		cells.push_back(inputCells[i]);
-	// 	}
-	// }
-	// std::cout << "Cells size: " << cells.size() << std::endl;
-	// for (const auto& cell : cells) {
-	// 	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
-	// }
 	std::cout << cells.size() << std::endl;
 	voronoi(cells, 0, cells.size());
+	std::cout << "voronoi ends" << std::endl;
 
 	std::vector< Vertex > vertices;
 	std::vector< uint32_t > indices;
