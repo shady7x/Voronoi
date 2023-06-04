@@ -124,6 +124,10 @@ class VulkanEngine {
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
 
+        VkImage depthImage;
+        VkImageView depthImageView;
+        VkDeviceMemory depthImageMemory;
+
         VkRenderPass renderPass;
         VkDescriptorSetLayout descriptorSetLayout;
         VkPipelineLayout pipelineLayout;
@@ -168,6 +172,7 @@ class VulkanEngine {
         void createGraphicsPipeline();
         void createFramebuffers();
         void createCommandPool();
+        void createDepthResources();
         void createVertexBuffer();
         void createIndexBuffer();
         void createUniformBuffers();
@@ -181,8 +186,16 @@ class VulkanEngine {
         void updateUniformBuffer(uint32_t currentImage);
         void drawFrame();
 
+        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
+        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+        
+        VkFormat findSupportedFormat(const std::vector<VkFormat>&candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        VkFormat findDepthFormat();
+        bool hasStencilComponent(VkFormat format);
+
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         VkShaderModule createShaderModule(const std::vector<char> &code);
         QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice &device);
