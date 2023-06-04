@@ -12,6 +12,8 @@
 
 const double EPS = 1e-10;
 
+bool logsOn = false;
+
 int fuzzyCompare(double val1, double val2) {
 	double eps = (abs(val2) + 1) * EPS;
 	double diff = val1 - val2;
@@ -342,7 +344,6 @@ std::pair< PolyNode*, std::pair< Point*, Point* > > merge(PolyNode* left, PolyNo
 	if (m[m.size() - 1]->next != m[0]) {
 		up = m.size() - 1;
 	}
-
 	size_t up2 = (up + 1) % m.size();
 	std::pair< Point*, Point* > bridge = std::make_pair(m[up]->p, m[up2]->p);
 	if (Point::orientation(m[up]->p, m[up]->next->p, m[up2]->p) == 0) {
@@ -430,13 +431,53 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdgePtr left = HalfEdgePtr(static_cast< Cell* >(bridge.second), true);
 	HalfEdgePtr right = HalfEdgePtr(static_cast< Cell* >(bridge.first), false);
 	std::vector< HalfEdge* > deletion;
-	std::shared_ptr< Point >  mid = std::make_shared< Point > ((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2), lastP = nullptr;
+	std::shared_ptr< Point > lastP = nullptr;
 	HalfEdge* leftChain = nullptr;
 	HalfEdge* rightChain = nullptr;
 	while (true) {
+
+		if (logsOn) {
+			if (lastP == nullptr) 
+				std::cout << "lastP nullptr" << std::endl;
+			else 
+				std::cout << "lastP " << lastP->x << ' ' << lastP->y << std::endl;
+		}
+
+		std::shared_ptr< Point >  mid = std::make_shared< Point > ((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2);
 		Line seam = Line::perpendicular(*left.cell, *right.cell, *mid);
 		left.intersection(seam, lastP);
 		right.intersection(seam, lastP);
+
+		// if (logsOn) {
+		// 	std::cout << "Cells " << left.cell->x << ' ' << left.cell->y << "   |   " << right.cell->x << ' ' << right.cell->y << std::endl;
+		// 	std::cout << "leftEdge\n";
+		// 	if (left.edge->getStart() != nullptr) {
+		// 		std::cout << left.edge->getStart()->x << ' ' << left.edge->getStart()->y << std::endl;
+		// 	}
+		// 	if (left.edge->getEnd() != nullptr) {
+		// 		std::cout << left.edge->getEnd()->x << ' ' << left.edge->getEnd()->y << std::endl;
+		// 	}
+		// 	std::cout << "rightEdge\n";
+		// 	if (right.edge->getStart() != nullptr) {
+		// 		std::cout << right.edge->getStart()->x << ' ' << right.edge->getStart()->y << std::endl;
+		// 	}
+		// 	if (right.edge->getEnd() != nullptr) {
+		// 		std::cout << right.edge->getEnd()->x << ' ' << right.edge->getEnd()->y << std::endl;
+		// 	}
+			
+		// 	std::cout << "intersect\n";
+		// 	if (left.cp == nullptr) 
+		// 		std::cout << "Lnullptr" << std::endl;
+		// 	else 
+		// 		std::cout << left.cp->x << ' ' << left.cp->y << std::endl;
+
+		// 	if (right.cp == nullptr) 
+		// 		std::cout << "Rnullptr" << std::endl;
+		// 	else 
+		// 		std::cout << right.cp->x << ' ' << right.cp->y << std::endl;
+		// 	std::cout << "--------------------" << std::endl;
+		// }
+
 		if (left.cp == nullptr && right.cp == nullptr) {
 			auto edge = HalfEdge::createEdge(nullptr, lastP, seam, left.cell, right.cell);
         	leftChain = addChainLink(edge, leftChain, true);
@@ -450,7 +491,7 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 		auto edge = HalfEdge::createEdge(point, lastP, seam, left.cell, right.cell);
 		leftChain = addChainLink(edge, leftChain, true);
 		rightChain = addChainLink(edge->twin, rightChain, false);
-		mid = lastP = point;
+		lastP = point;
 		if (cmp <= 0) {
 			auto intersectTwin = point->fuzzyEquals(left.edge->getEnd().get()) ? left.edge->next->twin->next : left.edge->twin;
 			left.edge->setEnd(point);
@@ -486,6 +527,10 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	size_t mid = (begin + end) / 2;
 	auto left = voronoi(cells, begin, mid);
 	auto right = voronoi(cells, mid, end);
+	// logsOn = logsOn || (begin == 16640 && end == 17160);
+	
+	if (logsOn) 
+		std::cout << "voronoi subsegm " << begin << ' ' << end << std::endl;
 	auto merged = merge(left, right);
 	mergeVoronoi(merged.second);
 	return merged.first;
@@ -513,7 +558,7 @@ void printCell(Cell* cell) {
 
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
-	// freopen("output.txt", "w", stdout);
+	freopen("output.txt", "w", stdout);
 	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1684952532;// 1683966317, 1684952532
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
@@ -545,21 +590,22 @@ int main(int argc, char** argv) {
 				moveY -= dy[k];
 			}
 		}
-		cells[i]->x += round(moveX == 0 ? regionRand(engine) : (moveX < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine)))); //error
+		cells[i]->x += round(moveX == 0 ? regionRand(engine) : (moveX < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
 		cells[i]->y += round(moveY == 0 ? regionRand(engine) : (moveY < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
 	}
 	for (int32_t i = 0; i < mapHeight; ++i) {
 		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
 		cells.push_back(new Cell(regionSize / 2 + mapWidth * regionSize, regionSize / 2 + i * regionSize));
 	}
+	std::cout << std::endl;
 	for (int32_t j = 0; j < mapWidth; ++j) {
 		cells.push_back(new Cell(regionSize / 2 + j * regionSize, -regionSize / 2));
 		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + mapHeight * regionSize));
 	}
+	std::cout << std::endl;
 
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 
-	std::cout << cells.size() << std::endl;
 	voronoi(cells, 0, cells.size());
 	std::cout << "voronoi ends" << std::endl;
 
