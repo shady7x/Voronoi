@@ -526,7 +526,7 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
-	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1685904510; //1685906448
+	int32_t regionSize = 64, mapWidth = 128, mapHeight = 128, seed = time(0); //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(mapWidth, mapHeight, 64, 3);
@@ -577,26 +577,41 @@ int main(int argc, char** argv) {
 	uint32_t index = 0;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-		float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3);
+		// float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3);
 		glm::vec3 aColor = MapTile::getColor(tiles[cells[i]->value - 1]);
+		float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - 1 }, aColor, { 1.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, tileHeight }, aColor, { 1.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
-				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - 1  }, aColor, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - 1  }, aColor, { 0.0, 0.0, 0.0 } };
+				
+				// float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
+				// float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
 				indices.emplace_back(index++);
 				indices.emplace_back(index++);
+				if (tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN && tiles[curr->twin->cell->value - 1] < MapTile::MOUNTAIN) {
+					b.pos.z = c.pos.z = 0.05;
+					vertices.emplace_back(c);
+					vertices.emplace_back(b);
+					index += 2;
+					indices.emplace_back(index - 3);
+					indices.emplace_back(index - 4);
+					indices.emplace_back(index - 1);
+					indices.emplace_back(index - 4);
+					indices.emplace_back(index - 2);
+					indices.emplace_back(index - 1);
+					
+				}
 			}
 			curr = curr->next;
 		} while (curr != cells[i]->head);
