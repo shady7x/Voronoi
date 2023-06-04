@@ -12,8 +12,6 @@
 
 const double EPS = 1e-10;
 
-bool logsOn = false;
-
 int fuzzyCompare(double val1, double val2) {
 	double eps = (abs(val2) + 1) * EPS;
 	double diff = val1 - val2;
@@ -435,49 +433,10 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 	HalfEdge* leftChain = nullptr;
 	HalfEdge* rightChain = nullptr;
 	while (true) {
-
-		if (logsOn) {
-			if (lastP == nullptr) 
-				std::cout << "lastP nullptr" << std::endl;
-			else 
-				std::cout << "lastP " << lastP->x << ' ' << lastP->y << std::endl;
-		}
-
-		std::shared_ptr< Point >  mid = std::make_shared< Point > ((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2);
-		Line seam = Line::perpendicular(*left.cell, *right.cell, *mid);
+		Point mid = Point((left.cell->x + right.cell->x) / 2, (left.cell->y + right.cell->y) / 2);
+		Line seam = Line::perpendicular(*left.cell, *right.cell, mid);
 		left.intersection(seam, lastP);
 		right.intersection(seam, lastP);
-
-		// if (logsOn) {
-		// 	std::cout << "Cells " << left.cell->x << ' ' << left.cell->y << "   |   " << right.cell->x << ' ' << right.cell->y << std::endl;
-		// 	std::cout << "leftEdge\n";
-		// 	if (left.edge->getStart() != nullptr) {
-		// 		std::cout << left.edge->getStart()->x << ' ' << left.edge->getStart()->y << std::endl;
-		// 	}
-		// 	if (left.edge->getEnd() != nullptr) {
-		// 		std::cout << left.edge->getEnd()->x << ' ' << left.edge->getEnd()->y << std::endl;
-		// 	}
-		// 	std::cout << "rightEdge\n";
-		// 	if (right.edge->getStart() != nullptr) {
-		// 		std::cout << right.edge->getStart()->x << ' ' << right.edge->getStart()->y << std::endl;
-		// 	}
-		// 	if (right.edge->getEnd() != nullptr) {
-		// 		std::cout << right.edge->getEnd()->x << ' ' << right.edge->getEnd()->y << std::endl;
-		// 	}
-			
-		// 	std::cout << "intersect\n";
-		// 	if (left.cp == nullptr) 
-		// 		std::cout << "Lnullptr" << std::endl;
-		// 	else 
-		// 		std::cout << left.cp->x << ' ' << left.cp->y << std::endl;
-
-		// 	if (right.cp == nullptr) 
-		// 		std::cout << "Rnullptr" << std::endl;
-		// 	else 
-		// 		std::cout << right.cp->x << ' ' << right.cp->y << std::endl;
-		// 	std::cout << "--------------------" << std::endl;
-		// }
-
 		if (left.cp == nullptr && right.cp == nullptr) {
 			auto edge = HalfEdge::createEdge(nullptr, lastP, seam, left.cell, right.cell);
         	leftChain = addChainLink(edge, leftChain, true);
@@ -527,10 +486,6 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	size_t mid = (begin + end) / 2;
 	auto left = voronoi(cells, begin, mid);
 	auto right = voronoi(cells, mid, end);
-	// logsOn = logsOn || (begin == 16640 && end == 17160);
-	
-	if (logsOn) 
-		std::cout << "voronoi subsegm " << begin << ' ' << end << std::endl;
 	auto merged = merge(left, right);
 	mergeVoronoi(merged.second);
 	return merged.first;
@@ -575,7 +530,7 @@ int main(int argc, char** argv) {
 
 	time_t seed2 = time(0);
 	std::cout << seed2 << std::endl;
-	std::default_random_engine engine(1685837735); // error 1685837735
+	std::default_random_engine engine(seed2); // error 1685837735
     std::uniform_real_distribution<double> regionRand(-0.4 * regionSize, 0.4 * regionSize);
 	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
 	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
@@ -619,17 +574,17 @@ int main(int argc, char** argv) {
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
 	
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - aNoiseVal }, aColor, { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				// float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
-				// float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 0 }, aColor, { 0.0, 0.0, 0.0 } };
+				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
+				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - bNoiseVal  }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - cNoiseVal  }, aColor, { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
