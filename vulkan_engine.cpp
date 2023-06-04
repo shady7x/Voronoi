@@ -58,7 +58,6 @@ void VulkanEngine::inputLoop() {
             case SDL_QUIT:
                 running = false;
                 return;
-
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     moveX = moveY = 0;
@@ -71,6 +70,9 @@ void VulkanEngine::inputLoop() {
                     moveX = x / sqrt(x * x + y * y);
                     moveY = y / sqrt(x * x + y * y);
                 }
+                break;
+            case SDL_MOUSEWHEEL: 
+                moveZ = event.wheel.y;
                 break;
             default:
                 if (!windowVisible) {
@@ -868,7 +870,8 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     // auto currentTime = std::chrono::high_resolution_clock::now();
     // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    ubo.model = glm::translate(ubo.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, 0));
+    ubo.model = glm::translate(ubo.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, -moveZ.load() / 100));
+    moveZ = 0;
     // ubo.proj[1][1] *= -1;
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

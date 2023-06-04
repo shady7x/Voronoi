@@ -94,10 +94,10 @@ class VulkanEngine {
         std::atomic< uint32_t > WIDTH = 1600;
         std::atomic< uint32_t > HEIGHT = 900;
 
-        std::atomic< float > moveX = 0, moveY = 0;
+        std::atomic< float > moveX = 0, moveY = 0, moveZ = 0;
         UniformBufferObject ubo {
             glm::mat4(1.0f),
-            glm::lookAt(glm::vec3(0.0f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, -0.9f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)
         };
 

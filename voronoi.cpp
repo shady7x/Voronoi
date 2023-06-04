@@ -10,10 +10,10 @@
 #include "vulkan_engine.h"
 #include "perlin_noise_2d.h"
 
-const double EPS = 1e-10;
+const double EPS = 1e-9;
 
 int fuzzyCompare(double val1, double val2) {
-	double eps = (abs(val2) + 1) * EPS;
+	double eps = (abs(val2) + 1.0) * EPS;
 	double diff = val1 - val2;
 	return diff < -eps ? -1 : (diff > eps ? 1 : 0);
 }
@@ -31,6 +31,10 @@ class Point {
         
 		bool fuzzyEquals(const Point* other) {
         	return other != nullptr && fuzzyCompare(x, other->x) == 0 && fuzzyCompare(y, other->y) == 0;
+		}
+
+		std::string toString() {
+			return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 		}
 
 		static int orientation(Point* a, Point* b, Point* c) {
@@ -83,7 +87,7 @@ class Line {
 		}
 
 		std::string toString() {
-			return std::to_string(a) + " " + std::to_string(b) + " " + std::to_string(c);
+			return std::to_string(a) + "x + " + std::to_string(b) + "y + " + std::to_string(c) + " = 0";
 		}
 };
 
@@ -95,6 +99,13 @@ class HalfEdge {
 		HalfEdge* twin;
 
 		HalfEdge(std::shared_ptr< Point > source, Cell* cell) : source(source), cell(cell) {}
+
+		std::string toString() {
+
+			return "HalfEdge cell: " + cell->toString() + " twin->cell: " + twin->cell->toString() + "\n"
+				+ " start: " + (getStart() != nullptr ? (std::to_string(getStart()->x) + " " + std::to_string(getStart()->y)) : getLine().toString()) + "\n"
+				+ " end: " + (getEnd() != nullptr ? (std::to_string(getEnd()->x) + " " + std::to_string(getEnd()->y)) : getLine().toString());
+		}
 
 		std::shared_ptr< Point > getStart() {
         	return source->value == 0 ? source : nullptr;
@@ -200,6 +211,20 @@ class HalfEdge {
 	private:
 		std::shared_ptr< Point > source;
 };
+
+void printCell(Cell* cell) {
+	std::cout << "-----------" << cell->value << "----------\n";
+	std::cout << cell->toString() << std::endl;
+	auto curr = cell->head;
+	if (curr != nullptr) {
+		do {
+			std::cout << curr << ' ' << curr->toString() << std::endl;
+			curr = curr->next;
+		} while (curr != cell->head);
+	}
+	std::cout << "----------------------------" << std::endl;
+	
+}
 
 class VoronoiChainTree {
 	public:
@@ -473,6 +498,10 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			right.set(intersectTwin);
 			rightChain = nullptr;
 		}
+
+		
+
+
 	}
 	for (size_t i = 0; i < deletion.size(); ++i) {
 		delete deletion[i];
@@ -491,30 +520,13 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	return merged.first;
 }
 
-void printCell(Cell* cell) {
-	std::cout << cell->x << ' ' << cell->y << ' ' << cell->value << std::endl;
-	auto curr = cell->head;
-	int k = 0;
-	do {
-		std::cout << "HalfEdge: " << curr;
-		if (curr->getStart() != nullptr) {
-			std::cout << " start: " << curr->getStart()->x << " " << curr->getStart()->y;
-		}
-		if (curr->getEnd() != nullptr) {
-			std::cout << " end: " << curr->getEnd()->x << " " << curr->getEnd()->y;
-		}
-		std::cout << "   |   " << curr->getLine().toString() << " " << curr->twin <<std::endl;
-		k++;
-		curr = curr->next;
-	} while (curr != cell->head);
-	std::cout << k << std::endl;
-}
+
  
 
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
-	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1684952532;// 1683966317, 1684952532
+	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1685904510; //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(mapWidth, mapHeight, 64, 3);
@@ -528,9 +540,9 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	time_t seed2 = time(0);
-	std::cout << seed2 << std::endl;
-	std::default_random_engine engine(seed2); // error 1685837735
+	time_t seed2 = seed;
+	std::cout << "Seed2: " << seed2 << std::endl; 
+	std::default_random_engine engine(seed2);
     std::uniform_real_distribution<double> regionRand(-0.4 * regionSize, 0.4 * regionSize);
 	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
 	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
@@ -552,15 +564,11 @@ int main(int argc, char** argv) {
 		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
 		cells.push_back(new Cell(regionSize / 2 + mapWidth * regionSize, regionSize / 2 + i * regionSize));
 	}
-	std::cout << std::endl;
 	for (int32_t j = 0; j < mapWidth; ++j) {
 		cells.push_back(new Cell(regionSize / 2 + j * regionSize, -regionSize / 2));
 		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + mapHeight * regionSize));
 	}
-	std::cout << std::endl;
-
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
-
 	voronoi(cells, 0, cells.size());
 	std::cout << "voronoi ends" << std::endl;
 
@@ -573,8 +581,7 @@ int main(int argc, char** argv) {
 		glm::vec3 aColor = MapTile::getColor(tiles[cells[i]->value - 1]);
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-	
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - aNoiseVal }, aColor, { 0.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - 1 }, aColor, { 1.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
@@ -583,8 +590,8 @@ int main(int argc, char** argv) {
 			if (start != nullptr && end != nullptr) {
 				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
 				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - bNoiseVal  }, aColor, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - cNoiseVal  }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - 1  }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - 1  }, aColor, { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
@@ -606,3 +613,12 @@ int main(int argc, char** argv) {
     }
 	return 0;
 }
+
+/*
+Seed: 1685904510
+Seed2: 1685904510
+*/
+
+/*
+Seed 1685897482
+*/
