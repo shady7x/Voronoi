@@ -37,10 +37,15 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct UniformBufferObject {
+struct GlobalMvp {
     glm::mat4 model;
     glm::mat4 view;
-    glm::mat4 proj;
+    glm::mat4 projection;
+};
+
+struct UniformBufferObject {
+    glm::mat4 mvp;
+    glm::mat4 normal;
 };
 
 struct Vertex {
@@ -95,7 +100,7 @@ class VulkanEngine {
         std::atomic< uint32_t > HEIGHT = 900;
 
         std::atomic< float > moveX = 0, moveY = 0, moveZ = 0;
-        UniformBufferObject ubo {
+        GlobalMvp mvp {
             glm::mat4(1.0f),
             glm::lookAt(glm::vec3(0.0f, -0.9f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)

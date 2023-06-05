@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 0) in vec3 color;
+layout(location = 0) in vec3 inColor;
 layout(location = 1) noperspective in vec3 outline;
 
 layout(location = 0) out vec4 outColor;
@@ -13,6 +13,6 @@ void main() {
     if (distX < 1.0 || distY < 1.0 || distZ < 1.0) {
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
     } else {
-        outColor = vec4(color, 1.0);
+        outColor = vec4(inColor, 1.0);
     } 
 }
