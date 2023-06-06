@@ -121,7 +121,7 @@ void VulkanEngine::cleanup() {
     }
 
     vkDestroyDescriptorPool(vulkanDevice, descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(vulkanDevice, descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(vulkanDevice, vertexDescriptorSetLayout, nullptr);
     vkDestroyBuffer(vulkanDevice, indexBuffer, nullptr);
     vkFreeMemory(vulkanDevice, indexBufferMemory, nullptr);
     vkDestroyBuffer(vulkanDevice, vertexBuffer, nullptr);
@@ -422,9 +422,9 @@ void VulkanEngine::createRenderPass() {
 }
 
 void VulkanEngine::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
-    VkDescriptorSetLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboLayoutBinding };
-    if (vkCreateDescriptorSetLayout(vulkanDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    VkDescriptorSetLayoutBinding uboVertexBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    VkDescriptorSetLayoutCreateInfo vertexLayoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboVertexBinding };
+    if (vkCreateDescriptorSetLayout(vulkanDevice, &vertexLayoutInfo, nullptr, &vertexDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 }
@@ -519,7 +519,7 @@ void VulkanEngine::createGraphicsPipeline() {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &vertexDescriptorSetLayout;
 
     if (vkCreatePipelineLayout(vulkanDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout!");
@@ -652,7 +652,7 @@ void VulkanEngine::createDescriptorPool() {
 }
 
 void VulkanEngine::createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, vertexDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;

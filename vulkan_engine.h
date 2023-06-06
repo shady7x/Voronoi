@@ -144,7 +144,7 @@ class VulkanEngine {
 
         VkRenderPass renderPass;
 
-        VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorSetLayout vertexDescriptorSetLayout;
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
