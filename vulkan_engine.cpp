@@ -429,13 +429,13 @@ void VulkanEngine::createDescriptorSetLayout() {
     {VkDescriptorSetLayoutBinding uboVertexBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
     VkDescriptorSetLayoutCreateInfo vertexLayoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboVertexBinding };
     if (vkCreateDescriptorSetLayout(vulkanDevice, &vertexLayoutInfo, nullptr, &descriptorSetLayout[0]) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create descriptor set layout!");
+        throw std::runtime_error("Failed to create vertex descriptor set layout!");
     }}
 
     VkDescriptorSetLayoutBinding uboFragmentBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
     VkDescriptorSetLayoutCreateInfo fragmentLayoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboFragmentBinding };
     if (vkCreateDescriptorSetLayout(vulkanDevice, &fragmentLayoutInfo, nullptr, &descriptorSetLayout[1]) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create descriptor set layout!");
+        throw std::runtime_error("Failed to create fragment descriptor set layout!");
     }
 }
 
