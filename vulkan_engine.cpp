@@ -116,8 +116,8 @@ void VulkanEngine::cleanup() {
     vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
     vkDestroyRenderPass(vulkanDevice, renderPass, nullptr);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroyBuffer(vulkanDevice, ubo.uniformBuffers[i], nullptr);
-        vkFreeMemory(vulkanDevice, ubo.uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(vulkanDevice, ubo[0].uniformBuffers[i], nullptr);
+        vkFreeMemory(vulkanDevice, ubo[0].uniformBuffersMemory[i], nullptr);
     }
 
     vkDestroyDescriptorPool(vulkanDevice, descriptorPool, nullptr);
@@ -630,8 +630,8 @@ void VulkanEngine::createIndexBuffer() {
 
 void VulkanEngine::createUniformBuffers() {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        createBuffer(ubo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ubo.uniformBuffers[i], ubo.uniformBuffersMemory[i]);    
-        vkMapMemory(vulkanDevice, ubo.uniformBuffersMemory[i], 0, ubo.size, 0, &ubo.uniformBuffersMapped[i]);
+        createBuffer(ubo[0].size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ubo[0].uniformBuffers[i], ubo[0].uniformBuffersMemory[i]);    
+        vkMapMemory(vulkanDevice, ubo[0].uniformBuffersMemory[i], 0, ubo[0].size, 0, &ubo[0].uniformBuffersMapped[i]);
     }
 }
 
@@ -665,9 +665,9 @@ void VulkanEngine::createDescriptorSets() {
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = ubo.uniformBuffers[i];
+        bufferInfo.buffer = ubo[0].uniformBuffers[i];
         bufferInfo.offset = 0;
-        bufferInfo.range = ubo.size;
+        bufferInfo.range = ubo[0].size;
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -859,7 +859,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
-    memcpy(ubo.uniformBuffersMapped[currentImage], &matrices, ubo.size);
+    memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
 }
 
 void VulkanEngine::drawFrame() {

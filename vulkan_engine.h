@@ -159,11 +159,8 @@ class VulkanEngine {
         VkBuffer vertexBuffer;
         VkDeviceMemory vertexBufferMemory;
 
-        UniformBufferObject ubo { 
-            sizeof(Matrices), 
-            std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT),
-            std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT),
-            std::vector<void*>(MAX_FRAMES_IN_FLIGHT)
+        std::vector<UniformBufferObject> ubo { 
+            { sizeof(Matrices), std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT), std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT), std::vector<void*>(MAX_FRAMES_IN_FLIGHT) }
         };
 
         std::vector< VkSemaphore > imageAvailableSemaphores;
