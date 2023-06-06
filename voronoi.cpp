@@ -575,7 +575,7 @@ int main(int argc, char** argv) {
 		float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, tileHeight }, aColor, { 1.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, tileHeight }, aColor, glm::vec3(1), { 1.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
@@ -585,8 +585,8 @@ int main(int argc, char** argv) {
 				
 				// float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
 				// float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, { 0.0, 0.0, 0.0 } };
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, glm::vec3(1), { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, tileHeight  }, aColor, glm::vec3(1), { 0.0, 0.0, 0.0 } };
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);

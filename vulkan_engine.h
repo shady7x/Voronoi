@@ -52,6 +52,8 @@ struct Matrices {
 struct LightInfo {
     glm::vec4 position;
     glm::vec3 intensity;
+    glm::vec3 Kd;
+    glm::vec3 Ka;
 };
 
 struct UniformBufferObject {
@@ -64,6 +66,7 @@ struct UniformBufferObject {
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
+    glm::vec3 normal;
     glm::vec3 outline;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -74,8 +77,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array< VkVertexInputAttributeDescription, 3 > getAttributeDescriptions() {
-        std::array< VkVertexInputAttributeDescription, 3 > attributeDescriptions{};
+    static std::array< VkVertexInputAttributeDescription, 4 > getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions {};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -89,7 +92,13 @@ struct Vertex {
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, outline);
+        attributeDescriptions[2].offset = offsetof(Vertex, normal);
+
+
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, outline);
 
         return attributeDescriptions;
     }
