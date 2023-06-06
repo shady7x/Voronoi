@@ -49,6 +49,13 @@ struct Matrices {
     glm::mat3 normal;
 };
 
+struct UniformBufferObject {
+    VkDeviceSize size;
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<void*> uniformBuffersMapped;
+};
+
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
@@ -147,9 +154,13 @@ class VulkanEngine {
         VkDeviceMemory indexBufferMemory;
         VkBuffer vertexBuffer;
         VkDeviceMemory vertexBufferMemory;
-        std::vector< VkBuffer > uniformBuffers;
-        std::vector< VkDeviceMemory > uniformBuffersMemory;
-        std::vector< void* > uniformBuffersMapped;
+
+        UniformBufferObject ubo { 
+            sizeof(Matrices), 
+            std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT),
+            std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT),
+            std::vector<void*>(MAX_FRAMES_IN_FLIGHT)
+        };
 
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;

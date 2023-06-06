@@ -116,8 +116,8 @@ void VulkanEngine::cleanup() {
     vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
     vkDestroyRenderPass(vulkanDevice, renderPass, nullptr);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroyBuffer(vulkanDevice, uniformBuffers[i], nullptr);
-        vkFreeMemory(vulkanDevice, uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(vulkanDevice, ubo.uniformBuffers[i], nullptr);
+        vkFreeMemory(vulkanDevice, ubo.uniformBuffersMemory[i], nullptr);
     }
 
     vkDestroyDescriptorPool(vulkanDevice, descriptorPool, nullptr);
@@ -639,15 +639,9 @@ void VulkanEngine::createIndexBuffer() {
 }
 
 void VulkanEngine::createUniformBuffers() {
-    VkDeviceSize bufferSize = sizeof(Matrices);
-
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);    
-        vkMapMemory(vulkanDevice, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        createBuffer(ubo.size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ubo.uniformBuffers[i], ubo.uniformBuffersMemory[i]);    
+        vkMapMemory(vulkanDevice, ubo.uniformBuffersMemory[i], 0, ubo.size, 0, &ubo.uniformBuffersMapped[i]);
     }
 }
 
@@ -666,6 +660,7 @@ void VulkanEngine::createDescriptorPool() {
         throw std::runtime_error("Failed to create descriptor pool!");
     }
 }
+
 void VulkanEngine::createDescriptorSets() {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -680,7 +675,7 @@ void VulkanEngine::createDescriptorSets() {
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i];
+        bufferInfo.buffer = ubo.uniformBuffers[i];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Matrices);
 
@@ -874,7 +869,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
-    memcpy(uniformBuffersMapped[currentImage], &matrices, sizeof(matrices));
+    memcpy(ubo.uniformBuffersMapped[currentImage], &matrices, ubo.size);
 }
 
 void VulkanEngine::drawFrame() {

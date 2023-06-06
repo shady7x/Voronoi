@@ -498,10 +498,6 @@ void mergeVoronoi(const std::pair< Point*, Point* >& bridge) {
 			right.set(intersectTwin);
 			rightChain = nullptr;
 		}
-
-		
-
-
 	}
 	for (size_t i = 0; i < deletion.size(); ++i) {
 		delete deletion[i];
@@ -519,9 +515,6 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 	mergeVoronoi(merged.second);
 	return merged.first;
 }
-
-
- 
 
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
