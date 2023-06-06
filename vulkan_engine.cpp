@@ -677,7 +677,7 @@ void VulkanEngine::createDescriptorSets() {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = ubo.uniformBuffers[i];
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(Matrices);
+        bufferInfo.range = ubo.size;
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
