@@ -143,7 +143,11 @@ class VulkanEngine {
         VkDeviceMemory depthImageMemory;
 
         VkRenderPass renderPass;
+
         VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSets;
+
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
 
@@ -161,9 +165,6 @@ class VulkanEngine {
             std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT),
             std::vector<void*>(MAX_FRAMES_IN_FLIGHT)
         };
-
-        VkDescriptorPool descriptorPool;
-        std::vector<VkDescriptorSet> descriptorSets;
 
         std::vector< VkSemaphore > imageAvailableSemaphores;
         std::vector< VkSemaphore > renderFinishedSemaphores;
