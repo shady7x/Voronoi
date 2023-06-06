@@ -49,6 +49,10 @@ struct Matrices {
     glm::mat3 normal;
 };
 
+struct LightInfo {
+    glm::vec4 position;
+};
+
 struct UniformBufferObject {
     VkDeviceSize size;
     std::vector<VkBuffer> uniformBuffers;
@@ -144,9 +148,9 @@ class VulkanEngine {
 
         VkRenderPass renderPass;
 
-        VkDescriptorSetLayout vertexDescriptorSetLayout;
+        std::array<VkDescriptorSetLayout, 2> descriptorSetLayout;
         VkDescriptorPool descriptorPool;
-        std::vector<VkDescriptorSet> descriptorSets;
+        std::array<std::vector<VkDescriptorSet>, 2> descriptorSets;
 
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
@@ -160,7 +164,8 @@ class VulkanEngine {
         VkDeviceMemory vertexBufferMemory;
 
         std::vector<UniformBufferObject> ubo { 
-            { sizeof(Matrices), std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT), std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT), std::vector<void*>(MAX_FRAMES_IN_FLIGHT) }
+            { sizeof(Matrices), std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT), std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT), std::vector<void*>(MAX_FRAMES_IN_FLIGHT) },
+            { sizeof(LightInfo), std::vector<VkBuffer>(MAX_FRAMES_IN_FLIGHT), std::vector<VkDeviceMemory>(MAX_FRAMES_IN_FLIGHT), std::vector<void*>(MAX_FRAMES_IN_FLIGHT) }
         };
 
         std::vector< VkSemaphore > imageAvailableSemaphores;

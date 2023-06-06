@@ -115,13 +115,17 @@ void VulkanEngine::cleanup() {
     vkDestroyPipeline(vulkanDevice, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
     vkDestroyRenderPass(vulkanDevice, renderPass, nullptr);
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroyBuffer(vulkanDevice, ubo[0].uniformBuffers[i], nullptr);
-        vkFreeMemory(vulkanDevice, ubo[0].uniformBuffersMemory[i], nullptr);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        for (size_t k = 0; k < ubo.size(); ++k) {
+            vkDestroyBuffer(vulkanDevice, ubo[k].uniformBuffers[i], nullptr);
+            vkFreeMemory(vulkanDevice, ubo[k].uniformBuffersMemory[i], nullptr);
+        }
     }
 
     vkDestroyDescriptorPool(vulkanDevice, descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(vulkanDevice, vertexDescriptorSetLayout, nullptr);
+    for (size_t i = 0; i < descriptorSetLayout.size(); ++i) {
+        vkDestroyDescriptorSetLayout(vulkanDevice, descriptorSetLayout[i], nullptr);
+    }
     vkDestroyBuffer(vulkanDevice, indexBuffer, nullptr);
     vkFreeMemory(vulkanDevice, indexBufferMemory, nullptr);
     vkDestroyBuffer(vulkanDevice, vertexBuffer, nullptr);
@@ -422,9 +426,15 @@ void VulkanEngine::createRenderPass() {
 }
 
 void VulkanEngine::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboVertexBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    {VkDescriptorSetLayoutBinding uboVertexBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
     VkDescriptorSetLayoutCreateInfo vertexLayoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboVertexBinding };
-    if (vkCreateDescriptorSetLayout(vulkanDevice, &vertexLayoutInfo, nullptr, &vertexDescriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(vulkanDevice, &vertexLayoutInfo, nullptr, &descriptorSetLayout[0]) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create descriptor set layout!");
+    }}
+
+    VkDescriptorSetLayoutBinding uboFragmentBinding { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
+    VkDescriptorSetLayoutCreateInfo fragmentLayoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &uboFragmentBinding };
+    if (vkCreateDescriptorSetLayout(vulkanDevice, &fragmentLayoutInfo, nullptr, &descriptorSetLayout[1]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 }
@@ -518,8 +528,8 @@ void VulkanEngine::createGraphicsPipeline() {
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &vertexDescriptorSetLayout;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayout.size());
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayout.data();
 
     if (vkCreatePipelineLayout(vulkanDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout!");
@@ -630,21 +640,20 @@ void VulkanEngine::createIndexBuffer() {
 
 void VulkanEngine::createUniformBuffers() {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        createBuffer(ubo[0].size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ubo[0].uniformBuffers[i], ubo[0].uniformBuffersMemory[i]);    
-        vkMapMemory(vulkanDevice, ubo[0].uniformBuffersMemory[i], 0, ubo[0].size, 0, &ubo[0].uniformBuffersMapped[i]);
+        for (size_t k = 0; k < ubo.size(); ++k) {
+            createBuffer(ubo[k].size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ubo[k].uniformBuffers[i], ubo[k].uniformBuffersMemory[i]);    
+            vkMapMemory(vulkanDevice, ubo[k].uniformBuffersMemory[i], 0, ubo[k].size, 0, &ubo[k].uniformBuffersMapped[i]);
+        }
     }
 }
 
 void VulkanEngine::createDescriptorPool() {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
+    VkDescriptorPoolSize poolSize { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(4) };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolInfo.maxSets = static_cast<uint32_t>(4);
 
     if (vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool!");
@@ -652,33 +661,32 @@ void VulkanEngine::createDescriptorPool() {
 }
 
 void VulkanEngine::createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, vertexDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(vulkanDevice, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate descriptor sets!");
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        std::vector<VkDescriptorSetLayout> layouts { descriptorSetLayout[0], descriptorSetLayout[1] };
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
+        allocInfo.pSetLayouts = layouts.data();
+        descriptorSets[i].resize(layouts.size());
+        if (vkAllocateDescriptorSets(vulkanDevice, &allocInfo, descriptorSets[i].data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets!");
+        }
     }
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = ubo[0].uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = ubo[0].size;
-
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-
-        vkUpdateDescriptorSets(vulkanDevice, 1, &descriptorWrite, 0, nullptr);
+        for (size_t k = 0; k < ubo.size(); ++k) {
+            VkDescriptorBufferInfo bufferInfo { ubo[k].uniformBuffers[i], 0, ubo[k].size };
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = descriptorSets[i][k];
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            vkUpdateDescriptorSets(vulkanDevice, 1, &descriptorWrite, 0, nullptr);
+        }
     }
 }
 
@@ -823,7 +831,8 @@ void VulkanEngine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t i
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+            static_cast<uint32_t>(descriptorSets[currentFrame].size()), descriptorSets[currentFrame].data(), 0, nullptr);
 
         vkCmdDrawIndexed(commandBuffer, static_cast< uint32_t >(indices.size()), 1, 0, 0, 0);
 
@@ -859,7 +868,9 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
+    LightInfo light { glm::vec4(1) };
     memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
+    memcpy(ubo[1].uniformBuffersMapped[currentImage], &light, ubo[1].size);
 }
 
 void VulkanEngine::drawFrame() {
@@ -896,8 +907,8 @@ void VulkanEngine::drawFrame() {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
@@ -905,7 +916,7 @@ void VulkanEngine::drawFrame() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+    VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
