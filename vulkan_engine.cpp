@@ -663,11 +663,13 @@ void VulkanEngine::createDescriptorPool() {
 void VulkanEngine::createDescriptorSets() {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         std::vector<VkDescriptorSetLayout> layouts { descriptorSetLayout[0], descriptorSetLayout[1] };
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
-        allocInfo.pSetLayouts = layouts.data();
+        VkDescriptorSetAllocateInfo allocInfo {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            nullptr,
+            descriptorPool,
+            static_cast<uint32_t>(layouts.size()),
+            layouts.data()
+        };
         descriptorSets[i].resize(layouts.size());
         if (vkAllocateDescriptorSets(vulkanDevice, &allocInfo, descriptorSets[i].data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate descriptor sets!");
