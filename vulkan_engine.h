@@ -51,6 +51,7 @@ struct Matrices {
 
 struct LightInfo {
     glm::vec4 position;
+    glm::vec3 intensity;
 };
 
 struct UniformBufferObject {

@@ -870,7 +870,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
-    LightInfo light { glm::vec4(1) };
+    LightInfo light { glm::vec4(1), glm::vec3(1) };
     memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
     memcpy(ubo[1].uniformBuffersMapped[currentImage], &light, ubo[1].size);
 }

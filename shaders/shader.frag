@@ -2,6 +2,7 @@
 
 layout(set = 1, binding = 0) uniform LightInfo {
     vec4 position;
+    vec3 intensity;
 } light;
 
 layout(location = 0) in vec3 inColor;
