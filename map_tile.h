@@ -36,7 +36,7 @@ class MapTile {
                 case 2:
                     return {0.2, 0.6, 0.2};
                 case 3:
-                    return {0.6, 0.6, 0.6};
+                    return {0.2549, 0.2784, 0.2901};
                 case 4:
                     return {1.0, 1.0, 1.0};
             }
