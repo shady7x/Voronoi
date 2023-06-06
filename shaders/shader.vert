@@ -1,7 +1,8 @@
 #version 450
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(binding = 0) uniform Matrices {
     mat4 mvp;
+    mat4 mv;
     mat3 normal;
 } ubo;
 
@@ -15,7 +16,7 @@ layout(location = 1) noperspective out vec3 outline;
 
 
 void main() {
-    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
     outColor = inColor;
     outline = inOutline;
+    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
 }

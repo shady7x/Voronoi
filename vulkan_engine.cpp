@@ -639,7 +639,7 @@ void VulkanEngine::createIndexBuffer() {
 }
 
 void VulkanEngine::createUniformBuffers() {
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    VkDeviceSize bufferSize = sizeof(Matrices);
 
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
@@ -682,7 +682,7 @@ void VulkanEngine::createDescriptorSets() {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = uniformBuffers[i];
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        bufferInfo.range = sizeof(Matrices);
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -870,16 +870,11 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     // auto currentTime = std::chrono::high_resolution_clock::now();
     // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-
-
     mvp.model = glm::translate(mvp.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, -moveZ.load() / 100));
-    UniformBufferObject ubo {
-        mvp.projection * mvp.view * mvp.model,
-        glm::transpose(glm::inverse(mvp.view * mvp.model))
-    };
     moveZ = 0;    
-    // ubo.proj[1][1] *= -1;
-    memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    glm::mat4 mv = mvp.view * mvp.model;
+    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
+    memcpy(uniformBuffersMapped[currentImage], &matrices, sizeof(matrices));
 }
 
 void VulkanEngine::drawFrame() {
