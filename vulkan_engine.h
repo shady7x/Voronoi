@@ -128,8 +128,8 @@ class VulkanEngine {
         };
 
         LightInfo lightInfo { 
-            glm::vec4(1.0, -1.0, -1, 1.0), 
-            glm::vec4(1, 1, 1, 0.3) 
+            glm::vec4(1.0, 1.0, -0.3, 1.0), 
+            glm::vec4(1, 1, 1, 0.2) 
         };
 
         uint32_t currentFrame = 0;
