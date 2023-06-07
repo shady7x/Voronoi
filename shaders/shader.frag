@@ -20,11 +20,7 @@ void main() {
     vec3 ambient = light.color.rgb * light.color.a;
 
     float diff = max(dot(fNormal, normalize(fPosition - light.position.xyz)), 0.0); 
-
-    // if (diff == 0) {
-    //     outColor = vec4(1, 0, 0, 1);
-    // } else
-
+    
     if (distX < 1.0 || distY < 1.0 || distZ < 1.0) {
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
     } else {

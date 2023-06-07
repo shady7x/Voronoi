@@ -123,13 +123,13 @@ class VulkanEngine {
         
         MVP mvp {
             glm::mat4(1.0f),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, -0.9f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)
         };
 
         LightInfo lightInfo { 
-            glm::vec4(0.0, 0.0, -3, 1.0), 
-            glm::vec4(1, 1, 1, 1.0) 
+            glm::vec4(1.0, -1.0, -1, 1.0), 
+            glm::vec4(1, 1, 1, 0.3) 
         };
 
         uint32_t currentFrame = 0;

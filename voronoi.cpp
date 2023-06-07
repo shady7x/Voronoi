@@ -519,7 +519,7 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 int main(int argc, char** argv) {
 	// freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
-	int32_t regionSize = 64, mapWidth = 128, mapHeight = 128, seed = 1686077562; //1685906448
+	int32_t regionSize = 64, mapWidth = 128, mapHeight = 128, seed = time(0); //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(mapWidth, mapHeight, 64, 3);
@@ -567,7 +567,8 @@ int main(int argc, char** argv) {
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
-	std::vector<uint32_t> nums; 
+	std::vector<glm::vec3> normals; 
+	std::vector<std::pair<uint32_t, uint32_t>> eXv; 
 	uint32_t index = 0;
 
 	for (size_t i = 0; i < cells.size(); ++i) {
@@ -591,17 +592,29 @@ int main(int argc, char** argv) {
 				
 				glm::vec3 vec1 = { b.pos.x - a.pos.x, b.pos.y - a.pos.y, b.pos.z - a.pos.z };
 				glm::vec3 vec2 = { c.pos.x - a.pos.x, c.pos.y - a.pos.y, c.pos.z - a.pos.z };
-				b.normal = c.normal = glm::normalize(glm::cross(vec1, vec2));
+				glm::vec3 norm = glm::cross(vec1, vec2);
 				std::cout << glm::to_string(glm::normalize(glm::cross(vec1, vec2))) << std::endl;
 				
-				
-				
-				vertices.emplace_back(c);
+				if (start->value == 0) {
+					start->value = normals.size() + 10;
+					normals.push_back(norm);
+				} else {
+					normals[start->value - 10] += norm;
+				}
+				if (end->value == 0) {
+					end->value = normals.size() + 10;
+					normals.push_back(norm);
+				} else {
+					normals[end->value - 10] += norm;
+				}
+				vertices[aIndex].normal += norm;
 				vertices.emplace_back(b);
+				eXv.push_back(std::make_pair<uint32_t, uint32_t>(start->value - 10, vertices.size() - 1));
+				vertices.emplace_back(c);
+				eXv.push_back(std::make_pair<uint32_t, uint32_t>(end->value - 10, vertices.size() - 1));
 				indices.emplace_back(aIndex);
 				indices.emplace_back(index++);
 				indices.emplace_back(index++);
-
 
 				// if (tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN && tiles[curr->twin->cell->value - 1] < MapTile::MOUNTAIN) {
 				// 	b.pos.z = c.pos.z = 0.05;
@@ -621,6 +634,9 @@ int main(int argc, char** argv) {
 			}
 			curr = curr->next;
 		} while (curr != cells[i]->head);
+	}
+	for(size_t i = 0; i < eXv.size(); ++i) {
+		vertices[eXv[i].second].normal = normals[eXv[i].first];
 	}
 
 
