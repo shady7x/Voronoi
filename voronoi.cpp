@@ -108,11 +108,11 @@ class HalfEdge {
 		}
 
 		std::shared_ptr< Point > getStart() {
-        	return source->value == 0 ? source : nullptr;
+        	return source->value == 0 || source->value >= 10 ? source : nullptr;
     	}
 
     	std::shared_ptr< Point > getEnd() {
-        	return twin->source->value == 0 ? twin->source : nullptr;
+        	return twin->source->value == 0 || twin->source->value >= 10 ? twin->source : nullptr;
     	}
 
 		void setStart(std::shared_ptr< Point > p) {
@@ -565,9 +565,11 @@ int main(int argc, char** argv) {
 	voronoi(cells, 0, cells.size());
 	std::cout << "voronoi ends" << std::endl;
 
-	std::vector< Vertex > vertices;
-	std::vector< uint32_t > indices;
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	std::vector<uint32_t> nums; 
 	uint32_t index = 0;
+
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
 		float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 3);
@@ -575,7 +577,7 @@ int main(int argc, char** argv) {
 		// float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - aNoiseVal }, aColor, glm::vec3(0), { 0.0, 0.0, 0.0 } };
+		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - aNoiseVal }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
 		uint32_t aIndex = index++;
 		vertices.emplace_back(a);
 		do {
@@ -584,16 +586,22 @@ int main(int argc, char** argv) {
 			if (start != nullptr && end != nullptr) {
 				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 3);
 				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 3);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - bNoiseVal }, aColor, glm::vec3(0), { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - cNoiseVal }, aColor, glm::vec3(0), { 0.0, 0.0, 0.0 } };
+				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - bNoiseVal }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - cNoiseVal }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				
 				glm::vec3 vec1 = { b.pos.x - a.pos.x, b.pos.y - a.pos.y, b.pos.z - a.pos.z };
 				glm::vec3 vec2 = { c.pos.x - a.pos.x, c.pos.y - a.pos.y, c.pos.z - a.pos.z };
-				a.normal = b.normal = c.normal = glm::cross(vec1, vec2);
+				b.normal = c.normal = glm::normalize(glm::cross(vec1, vec2));
+				std::cout << glm::to_string(glm::normalize(glm::cross(vec1, vec2))) << std::endl;
+				
+				
+				
 				vertices.emplace_back(c);
 				vertices.emplace_back(b);
 				indices.emplace_back(aIndex);
 				indices.emplace_back(index++);
 				indices.emplace_back(index++);
+
 
 				// if (tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN && tiles[curr->twin->cell->value - 1] < MapTile::MOUNTAIN) {
 				// 	b.pos.z = c.pos.z = 0.05;
@@ -614,6 +622,20 @@ int main(int argc, char** argv) {
 			curr = curr->next;
 		} while (curr != cells[i]->head);
 	}
+
+
+	// std::vector<Vertex> cube = {
+	// 	{ { -1, -1, -1 }, { 1, 1, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { -1, 1, -1 }, { 1, 1, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { 1, 1, -1 }, { 1, 1, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { 1, -1, -1 }, { 1, 1, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+
+	// 	{ { -1, -1, 1 }, { 1, 0, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { -1, 1, 1 }, { 1, 0, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { 1, 1, 1 }, { 1, 0, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// 	{ { 1, -1, 1 }, { 1, 0, 0 }, { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 0.0 } },
+	// };
+	// std::vector<uint32_t> cubeIndices = {0, 2, 3, 0, 1, 2, 4, 6, 7, 4, 5, 6};
 
 	VulkanEngine vulkanEngine;
 	vulkanEngine.vertices = vertices;

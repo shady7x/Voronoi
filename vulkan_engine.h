@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
@@ -51,7 +52,7 @@ struct Matrices {
 
 struct LightInfo {
     glm::vec4 position;
-    glm::vec4 intensity;
+    glm::vec4 color;
 };
 
 struct UniformBufferObject {
@@ -122,8 +123,13 @@ class VulkanEngine {
         
         MVP mvp {
             glm::mat4(1.0f),
-            glm::lookAt(glm::vec3(0.0f, -0.9f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)
+        };
+
+        LightInfo lightInfo { 
+            glm::vec4(0.0, 0.0, -3, 1.0), 
+            glm::vec4(1, 1, 1, 1.0) 
         };
 
         uint32_t currentFrame = 0;

@@ -2,7 +2,7 @@
 
 layout(set = 1, binding = 0) uniform LightInfo {
     vec4 position;
-    vec4 intensity;
+    vec4 color;
 } light;
 
 layout(location = 0) in vec3 fColor;
@@ -17,12 +17,17 @@ void main() {
     float distY = outline.y / length(vec2(dFdx(outline.y), dFdy(outline.y)));
     float distZ = outline.z / length(vec2(dFdx(outline.z), dFdy(outline.z)));
 
-    vec3 ambient = vec3(light.intensity) * vec3(1);
-    vec3 diffuse = max(dot(fNormal, normalize(vec3(light.position) - fPosition)), 0.0) * vec3(1);
+    vec3 ambient = light.color.rgb * light.color.a;
+
+    float diff = max(dot(fNormal, normalize(fPosition - light.position.xyz)), 0.0); 
+
+    // if (diff == 0) {
+    //     outColor = vec4(1, 0, 0, 1);
+    // } else
 
     if (distX < 1.0 || distY < 1.0 || distZ < 1.0) {
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
     } else {
-        outColor = vec4((diffuse + ambient) * fColor, 1.0);
+        outColor = vec4(((diff * light.color.rgb) + ambient) * fColor, 1.0);
     } 
 }

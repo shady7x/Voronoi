@@ -485,7 +485,7 @@ void VulkanEngine::createGraphicsPipeline() {
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; //VK_CULL_MODE_BACK_BIT; VK_CULL_MODE_NONE
+    rasterizer.cullMode = VK_CULL_MODE_NONE; //VK_CULL_MODE_BACK_BIT; VK_CULL_MODE_NONE
     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -870,7 +870,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
-    LightInfo light { mv * glm::vec4(0, -0.9, -0.9, 1), glm::vec4(1) };
+    LightInfo light { mv * lightInfo.position, lightInfo.color };
     memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
     memcpy(ubo[1].uniformBuffersMapped[currentImage], &light, ubo[1].size);
 }
