@@ -20,3 +20,5 @@ target_sources(voronoi PUBLIC ${SOURCES_SRC})
 target_include_directories(voronoi PUBLIC ${SDL2_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(voronoi ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES})
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/LP_Airplane.obj" "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
