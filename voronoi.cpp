@@ -325,14 +325,14 @@ int main(int argc, char** argv) {
 	int32_t seed = 1686078735; //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(MAP_WIDTH, MAP_HEIGHT, 64, 4);
+	perlin.saveImage(MAP_WIDTH, MAP_HEIGHT, 64, 3);
 
 	std::vector<Cell*> cells;
 	std::vector<MapTile::Type> tiles;
 	for (int32_t i = 0; i < MAP_HEIGHT; ++i) {
 		for (int32_t j = 0; j < MAP_WIDTH; ++j) {
 			cells.push_back(new Cell(REGION_SIZE / 2 + j * REGION_SIZE, REGION_SIZE / 2 + i * REGION_SIZE, i * MAP_WIDTH + j + 1, i * MAP_WIDTH + j + 1));
-			tiles.push_back(MapTile::getTile(perlin.noise(j / 64.0f, i / 64.0f, 4)));
+			tiles.push_back(MapTile::getTile(perlin.noise(j / 64.0f, i / 64.0f, 3)));
 		}
 	}
 
@@ -376,7 +376,7 @@ int main(int argc, char** argv) {
 	int32_t vertIndex = MAP_WIDTH * MAP_HEIGHT + 1;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-		float aNoiseVal = perlin.noise((cells[i]->x / REGION_SIZE) / 64.0, (cells[i]->y / REGION_SIZE) / 64.0, 4);
+		float aNoiseVal = perlin.noise((cells[i]->x / REGION_SIZE) / 64.0, (cells[i]->y / REGION_SIZE) / 64.0, 3);
 		glm::vec3 aColor = MapTile::getColor(tiles[cells[i]->value - 1]);
 		// float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
@@ -388,8 +388,8 @@ int main(int argc, char** argv) {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / REGION_SIZE) / 64.0, (std::max(0.0, start->y) / REGION_SIZE) / 64.0, 4);
-				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / REGION_SIZE) / 64.0, (std::max(0.0, end->y) / REGION_SIZE) / 64.0, 4);
+				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / REGION_SIZE) / 64.0, (std::max(0.0, start->y) / REGION_SIZE) / 64.0, 3);
+				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / REGION_SIZE) / 64.0, (std::max(0.0, end->y) / REGION_SIZE) / 64.0, 3);
 				Vertex b = { { 2 * start->x / (MAP_WIDTH * REGION_SIZE)  - 1, 2 * start->y / (MAP_HEIGHT * REGION_SIZE) - 1, 1 - bNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
 				Vertex c = { { 2 * end->x / (MAP_WIDTH * REGION_SIZE)  - 1, 2 * end->y / (MAP_HEIGHT * REGION_SIZE) - 1, 1 - cNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
 				
@@ -441,7 +441,7 @@ int main(int argc, char** argv) {
 		vertices[eXv[i].second].normal = normals[eXv[i].first];
 	}
 
-	auto tH = 1 - perlin.noise(MAP_WIDTH / 2 / 64, MAP_HEIGHT / 2 / 64, 4);
+	auto tH = 1 - perlin.noise(MAP_WIDTH / 2 / 64, MAP_HEIGHT / 2 / 64, 3);
 	Vertex tA = { { 0, 0, tH, 2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };
 	Vertex tB = { { -0.01, 0, tH - 0.1, 2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };
 	Vertex tC = { { 0.01, 0, tH - 0.1,  2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };

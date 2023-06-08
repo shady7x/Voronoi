@@ -879,13 +879,26 @@ void VulkanEngine::recreateSwapChain() {
     createFramebuffers();
 }
 
+bool VulkanEngine::validPath(Point a, Point b, float h) {
+    double vecX = (b.x - a.x) / 100; 
+    double vecY = (b.x - a.x) / 100;
+    for (int i = 1; i <= 100; ++i) {
+        auto th = 1 - perlin.noise(std::max(0.0, (a.x + vecX + 1.0) * MAP_WIDTH / 2 / 64), std::max(0.0, (a.y + vecY + 1.0) * MAP_HEIGHT / 2 / 64), 3);
+        if (th < h) {
+            return false;
+        }
+    } 
+    return true;
+}
+
 void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
-    static auto initialFH = 1 - perlin.noise(MAP_WIDTH / 2 / 64.0f, MAP_HEIGHT / 2 / 64.0f, 4);
+    static auto initialFH = 1 - perlin.noise(MAP_WIDTH / 2 / 64.0f, MAP_HEIGHT / 2 / 64.0f, 3);
     static auto prevFH = initialFH;
     // static auto startTime = std::chrono::high_resolution_clock::now();
-
+    // static auto prevTime = std::chrono::high_resolution_clock::now();
     // auto currentTime = std::chrono::high_resolution_clock::now();
-    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    static std::shared_ptr<Point> semi = nullptr;
 
     mvp.model = glm::translate(mvp.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, -moveZ.load() / 100));
 
@@ -893,16 +906,48 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
     if (finishMoveX != 0 || finishMoveY != 0) {
+        semi = nullptr;
         finishModel = glm::translate(finishModel, glm::vec3(finishMoveX.load() / 500, finishMoveY.load() / 500, 0));
         glm::vec3 fPos = glm::vec3(finishModel * glm::vec4(0, 0, initialFH, 1));
-        auto curFH = 1 - perlin.noise(std::max(0.0f, (fPos.x + 1) * MAP_WIDTH / 2 / 64), std::max(0.0f, (fPos.y + 1) * MAP_HEIGHT / 2 / 64), 4);
-        finishX = (fPos.x + 1) * MAP_WIDTH *  REGION_SIZE / 2;
-        finishY = (fPos.y + 1) * MAP_HEIGHT * REGION_SIZE / 2;
+        auto curFH = 1 - perlin.noise(std::max(0.0f, (fPos.x + 1) * MAP_WIDTH / 2 / 64), std::max(0.0f, (fPos.y + 1) * MAP_HEIGHT / 2 / 64), 3);
+        finishX = fPos.x;
+        finishY = fPos.y;
         finishModel = glm::translate(finishModel, glm::vec3(0, 0, curFH - prevFH));
         prevFH = curFH;
+        std::cout <<"marker " << curFH << std::endl;
     }
+    planeCords = planeModel * glm::vec4(0, 0, 0, 1);
+    double fx = finishX.load(), fy = finishY.load();
+    
+    glm::vec3 v = glm::vec3(fx - planeCords.x, fy - planeCords.y, 0);
 
-    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), planeModel, finishModel }; // proj[1][1] *= -1;
+    glm::mat4 pm;
+    if (v.x * v.x + v.y * v.y < 0.000001) {
+        planeModel = glm::translate(planeModel, glm::vec3(v.x, v.y, 0));
+        pm = glm::rotate(planeModel, static_cast<float>(M_PI_2), {-1, 0, 0}), std::acos(glm::dot(glm::normalize(v), {1, 0, 0}));
+    } else {
+        v = glm::normalize(v) * 0.001f;
+        
+        float maxH = 1;
+        glm::vec3 dir = v;
+        for (int i = 0; i < 100; ++i) {
+            auto next = 1 - perlin.noise(std::max(0.0f, (planeCords.x + v.x * i + 1) * MAP_WIDTH / 2 / 64), std::max(0.0f, (planeCords.y + v.y * i + 1) * MAP_HEIGHT / 2 / 64), 3);
+            if (next < maxH) {
+                maxH = next;
+            }
+        }
+
+        if (maxH < planeCords.z) {
+            v.z = maxH - planeCords.z -0.01;
+            v = glm::normalize(v) * 0.001f;
+        } else if (planeCords.z < 0.4) {
+            v.z = 0.0001;
+        }
+        planeModel = glm::translate(planeModel, glm::vec3(v.x, v.y, v.z));
+        float angle = std::acos(glm::dot(glm::normalize(glm::vec2(v)), {1, 0}));
+        pm = glm::rotate(glm::rotate(planeModel, static_cast<float>(M_PI_2), {-1, 0, 0}), angle, {0, v.y < 0 ? 1 : -1, 0});
+    }
+    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), pm, finishModel }; // proj[1][1] *= -1;
     LightInfo light { mv * lightInfo.position, lightInfo.color };
     
 

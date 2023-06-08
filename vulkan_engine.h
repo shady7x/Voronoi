@@ -141,10 +141,11 @@ class VulkanEngine {
             glm::vec4(1, 1, 1, 0.2) 
         };
 
-        glm::mat4 planeModel = glm::rotate(glm::translate(glm::mat4(1), glm::vec3(-1, -1, 0)), static_cast<float>(M_PI / 2.0f), { -1, 0, 0 });
-        
+        glm::mat4 planeModel = glm::translate(glm::mat4(1), glm::vec3(-1, -1, 0.40)); // самолет левый нижний угол, на высоте 0.45, ось z+ уходит в землю
+        glm::vec4 planeCords = glm::vec4(0, 0, 0, 1); 
+
         std::atomic<float> finishMoveX = 0, finishMoveY = 0, finishMoveZ = 0;
-        std::atomic<double> finishX = MAP_WIDTH * REGION_SIZE / 2.0, finishY = MAP_HEIGHT * REGION_SIZE / 2.0;
+        std::atomic<double> finishX = 0, finishY = 0;
         glm::mat4 finishModel = glm::mat4(1);
 
 
@@ -233,6 +234,7 @@ class VulkanEngine {
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         void recreateSwapChain();
+        bool validPath(Point a, Point b, float h);
         void updateUniformBuffer(uint32_t currentImage);
         void drawFrame();
 
