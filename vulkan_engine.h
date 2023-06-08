@@ -141,7 +141,7 @@ class VulkanEngine {
             glm::vec4(1, 1, 1, 0.2) 
         };
 
-        glm::mat4 planeModel = glm::translate(glm::mat4(1), glm::vec3(-1, -1, 0.40)); // самолет левый нижний угол, на высоте 0.45, ось z+ уходит в землю
+        glm::mat4 planeModel = glm::translate(glm::mat4(1), glm::vec3(-1, -1, 0.50)); // самолет левый нижний угол, на высоте 0.45, ось z+ уходит в землю
         glm::vec4 planeCords = glm::vec4(0, 0, 0, 1); 
 
         std::atomic<float> finishMoveX = 0, finishMoveY = 0, finishMoveZ = 0;

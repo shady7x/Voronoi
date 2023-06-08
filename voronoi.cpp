@@ -322,7 +322,7 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 
 int main(int argc, char** argv) {
 	// freopen("output.txt", "w", stdout);
-	int32_t seed = 1686078735; //1685906448
+	int32_t seed = time(0); //1685906448 1686078735 1686224088
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(MAP_WIDTH, MAP_HEIGHT, 64, 3);
