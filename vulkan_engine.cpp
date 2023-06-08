@@ -66,7 +66,6 @@ void VulkanEngine::inputLoop() {
                 break;
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_UP) {
-                    std::cout << event.key.keysym.sym << std::endl;
                     finishMoveY = 1;
                 } else if (event.key.keysym.sym == SDLK_DOWN) {
                     finishMoveY = -1;
