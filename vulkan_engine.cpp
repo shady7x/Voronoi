@@ -914,7 +914,6 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
         finishY = fPos.y;
         finishModel = glm::translate(finishModel, glm::vec3(0, 0, curFH - prevFH));
         prevFH = curFH;
-        std::cout <<"marker " << curFH << std::endl;
     }
     planeCords = planeModel * glm::vec4(0, 0, 0, 1);
     double fx = finishX.load(), fy = finishY.load();
@@ -929,7 +928,6 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
         v = glm::normalize(v) * 0.001f;
         
         float maxH = 1;
-        glm::vec3 dir = v;
         for (int i = 0; i < 100; ++i) {
             auto next = 1 - perlin.noise(std::max(0.0f, (planeCords.x + v.x * i + 1) * MAP_WIDTH / 2 / 64), std::max(0.0f, (planeCords.y + v.y * i + 1) * MAP_HEIGHT / 2 / 64), 3);
             if (next < maxH) {
