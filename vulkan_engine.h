@@ -48,6 +48,7 @@ struct Matrices {
     glm::mat4 mvp;
     glm::mat4 mv;
     glm::mat4 normal;
+    glm::mat4 planeModel;
 };
 
 struct LightInfo {
@@ -63,7 +64,7 @@ struct UniformBufferObject {
 };
 
 struct Vertex {
-    glm::vec3 pos;
+    glm::vec4 pos;
     glm::vec3 color;
     glm::vec3 normal;
     glm::vec3 outline;
@@ -80,7 +81,7 @@ struct Vertex {
         std::array< VkVertexInputAttributeDescription, 4 > attributeDescriptions{};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
         attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
         attributeDescriptions[1].binding = 0;
@@ -116,10 +117,10 @@ class VulkanEngine {
         };
 
         const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-        std::atomic< uint32_t > WIDTH = 1600;
-        std::atomic< uint32_t > HEIGHT = 900;
+        std::atomic<uint32_t> WIDTH = 1600;
+        std::atomic<uint32_t> HEIGHT = 900;
 
-        std::atomic< float > moveX = 0, moveY = 0, moveZ = 0;
+        std::atomic<float> moveX = 0, moveY = 0, moveZ = 0;
         
         MVP mvp {
             glm::mat4(1.0f),
@@ -131,6 +132,8 @@ class VulkanEngine {
             glm::vec4(1.0, 1.0, -0.3, 1.0), 
             glm::vec4(1, 1, 1, 0.2) 
         };
+
+        glm::mat4 planeModel = glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)), static_cast<float>(M_PI / 2.0f), { -1, 0, 0 });
 
         uint32_t currentFrame = 0;
 

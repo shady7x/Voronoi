@@ -867,9 +867,10 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     mvp.model = glm::translate(mvp.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, -moveZ.load() / 100));
+    //glm::rotate(glm::mat4(1), static_cast<float>(M_PI / 2.0f), glm::vec3(0, 1, 0));
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
-    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)) }; // proj[1][1] *= -1;
+    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), planeModel }; // proj[1][1] *= -1;
     LightInfo light { mv * lightInfo.position, lightInfo.color };
     memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
     memcpy(ubo[1].uniformBuffersMapped[currentImage], &light, ubo[1].size);
@@ -878,6 +879,7 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
 void VulkanEngine::drawFrame() {
     static uint32_t fps = 0;
     static auto lastSecondTime = std::chrono::high_resolution_clock::now();
+    static auto prevFrameTime = std::chrono::high_resolution_clock::now();
     auto currentSecondTime = std::chrono::high_resolution_clock::now();
 
     if (std::chrono::duration<float, std::chrono::milliseconds::period>(currentSecondTime - lastSecondTime).count() >= 1000) {
@@ -885,6 +887,10 @@ void VulkanEngine::drawFrame() {
         std::cout << fps << std::endl;
         fps = 0;
     }
+    if (std::chrono::duration<float, std::chrono::milliseconds::period>(currentSecondTime - prevFrameTime).count() < 6) {
+        return;
+    }
+    prevFrameTime = currentSecondTime;
     
     fps++;
     vkWaitForFences(vulkanDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
