@@ -4,6 +4,7 @@
 #include <cmath>
 #include <ctime>
 #include <random>
+#include <fstream>
 #include <glm/glm.hpp>
 
 #include "map_tile.h"

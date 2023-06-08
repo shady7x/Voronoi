@@ -9,8 +9,10 @@
 #include <deque>
 #include <memory>
 #include <limits>
-#include "vulkan_engine.h"
+
 #include "perlin_noise_2d.h"
+#include "vulkan_engine.h"
+
 
 const double EPS = 1e-9;
 
@@ -24,8 +26,9 @@ class Point {
     public:
 	    double x, y;
 		int32_t value;
+		uint32_t index;
 
-        Point(double x, double y, int32_t value = 0) : x(x), y(y), value(value) {}
+        Point(double x, double y, int32_t value = 0, uint32_t index = 0) : x(x), y(y), value(value), index(index) {}
         
 		double distSqr(const Point& p) {
             return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
@@ -51,7 +54,7 @@ class Cell : public Point {
 	public:
 		HalfEdge* head = nullptr;
 
-		Cell(double x, double y, int32_t value = 0) : Point(x, y, value) {}
+		Cell(double x, double y, int32_t value = 0, uint32_t index = 0) : Point(x, y, value, index) {}
 };
 
 class Line {
@@ -110,11 +113,11 @@ class HalfEdge {
 		}
 
 		std::shared_ptr< Point > getStart() {
-        	return source->value == 0 || source->value >= 10 ? source : nullptr;
+        	return source->value == 0 ? source : nullptr;
     	}
 
     	std::shared_ptr< Point > getEnd() {
-        	return twin->source->value == 0 || twin->source->value >= 10 ? twin->source : nullptr;
+        	return twin->source->value == 0 ? twin->source : nullptr;
     	}
 
 		void setStart(std::shared_ptr< Point > p) {
@@ -519,17 +522,17 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 }
 
 int main(int argc, char** argv) {
-	freopen("output.txt", "w", stdout);
-	int32_t regionSize = 32, mapWidth = 256, mapHeight = 256, seed = 1686078735; //1685906448
+	// freopen("output.txt", "w", stdout);
+	int32_t regionSize = 32, seed = 1686078735; //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
-	perlin.saveImage(mapWidth, mapHeight, 64, 4);
+	perlin.saveImage(MAP_WIDTH, MAP_HEIGHT, 64, 4);
 
 	std::vector<Cell*> cells;
 	std::vector<MapTile::Type> tiles;
-	for (int32_t i = 0; i < mapHeight; ++i) {
-		for (int32_t j = 0; j < mapWidth; ++j) {
-			cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + i * regionSize, i * mapWidth + j + 1));
+	for (int32_t i = 0; i < MAP_HEIGHT; ++i) {
+		for (int32_t j = 0; j < MAP_WIDTH; ++j) {
+			cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + i * regionSize, i * MAP_WIDTH + j + 1, i * MAP_WIDTH + j + 1));
 			tiles.push_back(MapTile::getTile(perlin.noise(j / 64.0f, i / 64.0f, 4)));
 		}
 	}
@@ -539,14 +542,14 @@ int main(int argc, char** argv) {
 	std::default_random_engine engine(seed2);
     std::uniform_real_distribution<double> regionRand(-0.4 * regionSize, 0.4 * regionSize);
 	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
-	for (int32_t i = mapWidth; i < static_cast<int32_t>(tiles.size()) - mapWidth; ++i) {
-		if (i % mapWidth == 0 || i % mapWidth == mapWidth -1) continue;
+	for (int32_t i = MAP_WIDTH; i < static_cast<int32_t>(tiles.size()) - MAP_WIDTH; ++i) {
+		if (i % MAP_WIDTH == 0 || i % MAP_WIDTH == MAP_WIDTH -1) continue;
 		int32_t moveX = 0, moveY = 0;
 		for (int32_t k = 0; k < 4; ++k) {
-			if (tiles[i + dx[k] + dy[k] * mapWidth] == tiles[i] && (tiles[i + dx[k]] != tiles[i] || tiles[i + dy[k] * mapWidth] != tiles[i])) {
+			if (tiles[i + dx[k] + dy[k] * MAP_WIDTH] == tiles[i] && (tiles[i + dx[k]] != tiles[i] || tiles[i + dy[k] * MAP_WIDTH] != tiles[i])) {
 				moveX += dx[k];
 				moveY += dy[k];
-			} else if (tiles[i + dx[k] + dy[k] * mapWidth] != tiles[i] && tiles[i + dx[k]] != tiles[i] && tiles[i + dy[k] * mapWidth] != tiles[i]) {
+			} else if (tiles[i + dx[k] + dy[k] * MAP_WIDTH] != tiles[i] && tiles[i + dx[k]] != tiles[i] && tiles[i + dy[k] * MAP_WIDTH] != tiles[i]) {
 				moveX -= dx[k];
 				moveY -= dy[k];
 			}
@@ -554,13 +557,13 @@ int main(int argc, char** argv) {
 		cells[i]->x += round(moveX == 0 ? regionRand(engine) : (moveX < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
 		cells[i]->y += round(moveY == 0 ? regionRand(engine) : (moveY < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
 	}
-	for (int32_t i = 0; i < mapHeight; ++i) {
+	for (int32_t i = 0; i < MAP_HEIGHT; ++i) {
 		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
-		cells.push_back(new Cell(regionSize / 2 + mapWidth * regionSize, regionSize / 2 + i * regionSize));
+		cells.push_back(new Cell(regionSize / 2 + MAP_WIDTH * regionSize, regionSize / 2 + i * regionSize));
 	}
-	for (int32_t j = 0; j < mapWidth; ++j) {
+	for (int32_t j = 0; j < MAP_WIDTH; ++j) {
 		cells.push_back(new Cell(regionSize / 2 + j * regionSize, -regionSize / 2));
-		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + mapHeight * regionSize));
+		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + MAP_HEIGHT * regionSize));
 	}
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 	voronoi(cells, 0, cells.size());
@@ -570,8 +573,8 @@ int main(int argc, char** argv) {
 	std::vector<uint32_t> indices;
 	std::vector<glm::vec3> normals; 
 	std::vector<std::pair<uint32_t, uint32_t>> eXv; 
-	uint32_t index = 0;
 
+	int32_t vertIndex = MAP_WIDTH * MAP_HEIGHT + 1;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
 		float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 4);
@@ -579,42 +582,42 @@ int main(int argc, char** argv) {
 		// float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / (mapWidth * regionSize) - 1, 2 * cells[i]->y / (mapHeight * regionSize) - 1, 1 - aNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 }};
-		uint32_t aIndex = index++;
+		Vertex a = { { 2 * cells[i]->x / (MAP_WIDTH * regionSize) - 1, 2 * cells[i]->y / (MAP_HEIGHT * regionSize) - 1, 1 - aNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 }};
 		vertices.emplace_back(a);
+		uint32_t aIndex = vertices.size() - 1;
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
 				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 4);
 				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 4);
-				Vertex b = { { 2 * start->x / (mapWidth * regionSize)  - 1, 2 * start->y / (mapHeight * regionSize) - 1, 1 - bNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (mapWidth * regionSize)  - 1, 2 * end->y / (mapHeight * regionSize) - 1, 1 - cNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				Vertex b = { { 2 * start->x / (MAP_WIDTH * regionSize)  - 1, 2 * start->y / (MAP_HEIGHT * regionSize) - 1, 1 - bNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (MAP_WIDTH * regionSize)  - 1, 2 * end->y / (MAP_HEIGHT * regionSize) - 1, 1 - cNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
 				
 				glm::vec3 vec1 = { b.pos.x - a.pos.x, b.pos.y - a.pos.y, b.pos.z - a.pos.z };
 				glm::vec3 vec2 = { c.pos.x - a.pos.x, c.pos.y - a.pos.y, c.pos.z - a.pos.z };
 				glm::vec3 norm = glm::cross(vec1, vec2);
 				
-				if (start->value == 0) {
-					start->value = normals.size() + 10;
+				if (start->index == 0) {
+					start->index = vertIndex++;
 					normals.push_back(norm);
 				} else {
-					normals[start->value - 10] += norm;
+					normals[start->index - MAP_WIDTH * MAP_HEIGHT - 1] += norm;
 				}
-				if (end->value == 0) {
-					end->value = normals.size() + 10;
+				if (end->index == 0) {
+					end->index = vertIndex++;
 					normals.push_back(norm);
 				} else {
-					normals[end->value - 10] += norm;
+					normals[end->index - MAP_WIDTH * MAP_HEIGHT - 1] += norm;
 				}
 				vertices[aIndex].normal += norm;
 				vertices.emplace_back(b);
-				eXv.push_back(std::make_pair<uint32_t, uint32_t>(start->value - 10, vertices.size() - 1));
+				eXv.push_back(std::make_pair<uint32_t, uint32_t>(start->index - MAP_WIDTH * MAP_HEIGHT - 1, vertices.size() - 1));
 				vertices.emplace_back(c);
-				eXv.push_back(std::make_pair<uint32_t, uint32_t>(end->value - 10, vertices.size() - 1));
+				eXv.push_back(std::make_pair<uint32_t, uint32_t>(end->index - MAP_WIDTH * MAP_HEIGHT - 1, vertices.size() - 1));
 				indices.emplace_back(aIndex);
-				indices.emplace_back(index++);
-				indices.emplace_back(index++);
+				indices.emplace_back(vertices.size() - 2);
+				indices.emplace_back(vertices.size() - 1);
 
 				// if (tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN && tiles[curr->twin->cell->value - 1] < MapTile::MOUNTAIN) {
 				// 	b.pos.z = c.pos.z = 0.05;
@@ -639,6 +642,17 @@ int main(int argc, char** argv) {
 		vertices[eXv[i].second].normal = normals[eXv[i].first];
 	}
 
+	auto tH = 1 - perlin.noise(MAP_WIDTH / 2 / 64, MAP_HEIGHT / 2 / 64, 4);
+	Vertex tA = { { 0, 0, tH, 2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };
+	Vertex tB = { { -0.01, 0, tH - 0.1, 2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };
+	Vertex tC = { { 0.01, 0, tH - 0.1,  2.0 }, {0, 0, 1}, {0, 0, 0}, {0, 0, 0} };
+	vertices.push_back(tA);
+	vertices.push_back(tB);
+	vertices.push_back(tC);
+	indices.emplace_back(vertices.size() - 3);
+	indices.emplace_back(vertices.size() - 2);
+	indices.emplace_back(vertices.size() - 1);
+
 	std::ifstream infile("LP_Airplane.obj");
 	std::vector<Vertex> plane;
 	std::vector<uint32_t> planeIndices;
@@ -653,7 +667,7 @@ int main(int argc, char** argv) {
 			double x, y, z;
 			iss >> x >> y >> z;
 			x /= 100; y /= 100; z /= 100;
-			vertices.push_back({ { x, y, z, 1 }, {1, 1, 1}, {0, 0, 0}, {0, 0, 0} });
+			vertices.push_back({ { x, y, z, 1.0 }, {1, 1, 1}, {0, 0, 0}, {0, 0, 0} });
 			if (vertices.size() < offsetVertices + 500) {
 				vertices[vertices.size() - 1].color = {1, 0, 0};
 			}
@@ -680,17 +694,17 @@ int main(int argc, char** argv) {
 				polyline.push_back(idx - 1);
 			}
 			for (size_t i = 2 ; i < polyline.size(); ++i) {
-				indices.push_back(index + polyline[0]);
-				indices.push_back(index + polyline[i - 1]);
-				indices.push_back(index + polyline[i]);
+				indices.push_back(offsetVertices + polyline[0]);
+				indices.push_back(offsetVertices + polyline[i - 1]);
+				indices.push_back(offsetVertices + polyline[i]);
 			}
 			
 		}
 	}
-	
 
 
-	VulkanEngine vulkanEngine;
+
+	VulkanEngine vulkanEngine(perlin);
 	vulkanEngine.vertices = vertices;
 	vulkanEngine.indices = indices;
     try {

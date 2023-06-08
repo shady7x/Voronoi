@@ -63,6 +63,25 @@ void VulkanEngine::inputLoop() {
                     moveX = moveY = 0;
                 }
                 break;
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_UP) {
+                    std::cout << event.key.keysym.sym << std::endl;
+                    finishMoveY = 1;
+                } else if (event.key.keysym.sym == SDLK_DOWN) {
+                    finishMoveY = -1;
+                } if (event.key.keysym.sym == SDLK_LEFT) {
+                    finishMoveX = -1;
+                } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                    finishMoveX = 1;
+                }
+                break;
+            case SDL_KEYUP: 
+                if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_DOWN) {
+                    finishMoveY = 0;
+                } else if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT) {
+                    finishMoveX = 0;
+                }
+                break;
             case SDL_MOUSEMOTION:
                 if (event.motion.state & SDL_BUTTON_LMASK) {
                     float x = event.motion.x - (WIDTH - 1) / 2.0f;
@@ -861,17 +880,34 @@ void VulkanEngine::recreateSwapChain() {
 }
 
 void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
+    static auto initialFH = 1 - perlin.noise(MAP_WIDTH / 2 / 64.0f, MAP_HEIGHT / 2 / 64.0f, 4);
+    static auto prevFH = initialFH;
     // static auto startTime = std::chrono::high_resolution_clock::now();
 
     // auto currentTime = std::chrono::high_resolution_clock::now();
     // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     mvp.model = glm::translate(mvp.model, glm::vec3(-moveX.load() / 500, -moveY.load() / 500, -moveZ.load() / 100));
+
     //glm::rotate(glm::mat4(1), static_cast<float>(M_PI / 2.0f), glm::vec3(0, 1, 0));
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
-    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), planeModel }; // proj[1][1] *= -1;
+    
+    
+    if (finishMoveX != 0 || finishMoveY != 0) {
+        finishModel = glm::translate(finishModel, glm::vec3(finishMoveX.load() / 500, finishMoveY.load() / 500, 0));
+        glm::vec3 fPos = glm::vec3(finishModel * glm::vec4(0, 0, initialFH, 1));
+        auto curFH = 1 - perlin.noise((fPos.x + 1) * MAP_WIDTH / 2 / 64, (fPos.y + 1) * MAP_HEIGHT / 2 / 64, 4);
+        finishModel = glm::translate(finishModel, glm::vec3(0, 0, curFH - prevFH));
+        std::cout << fPos.x << ' ' << fPos.y  << ' ' << curFH << std::endl;
+        prevFH = curFH;
+    }
+    // 
+
+    Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), planeModel, finishModel }; // proj[1][1] *= -1;
     LightInfo light { mv * lightInfo.position, lightInfo.color };
+    
+
     memcpy(ubo[0].uniformBuffersMapped[currentImage], &matrices, ubo[0].size);
     memcpy(ubo[1].uniformBuffersMapped[currentImage], &light, ubo[1].size);
 }

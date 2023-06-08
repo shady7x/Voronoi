@@ -17,6 +17,8 @@
 #include <fstream>
 #include <optional>
 
+#include "perlin_noise_2d.h"
+
 #ifdef NDEBUG
     #define ENABLE_VALIDATION_LAYERS false
 #else
@@ -49,6 +51,7 @@ struct Matrices {
     glm::mat4 mv;
     glm::mat4 normal;
     glm::mat4 planeModel;
+    glm::mat4 finishModel;
 };
 
 struct LightInfo {
@@ -105,9 +108,13 @@ struct Vertex {
 
 class VulkanEngine {
     public:
+        PerlinNoise2D& perlin;
         std::vector< Vertex > vertices;
         std::vector< uint32_t > indices;
         void run();
+
+        VulkanEngine(PerlinNoise2D& perlin) : perlin(perlin) {};
+
     private:
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
@@ -134,6 +141,10 @@ class VulkanEngine {
         };
 
         glm::mat4 planeModel = glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)), static_cast<float>(M_PI / 2.0f), { -1, 0, 0 });
+        
+        std::atomic<float> finishMoveX = 0, finishMoveY = 0, finishMoveZ = 0;
+        glm::mat4 finishModel = glm::mat4(1);
+
 
         uint32_t currentFrame = 0;
 

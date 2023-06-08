@@ -2,6 +2,9 @@
 
 #include <glm/glm.hpp>
 
+#define MAP_WIDTH 256
+#define MAP_HEIGHT 256
+
 class MapTile {
     public:
         enum Type {

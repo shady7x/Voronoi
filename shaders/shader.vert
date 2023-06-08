@@ -5,6 +5,7 @@ layout(set = 0, binding = 0) uniform Matrices {
     mat4 mv;
     mat4 normal;
     mat4 planeModel;
+    mat4 finishModel;
 } ubo;
 
 layout(location = 0) in vec4 vPosition;
@@ -23,9 +24,11 @@ void main() {
     position = vec3(ubo.mv * vec4(vPosition.xyz, 1.0));
     normal = normalize(mat3(ubo.normal) * vNormal);
     outline = vOutline;
-    if (vPosition.w == 1) {
-        gl_Position = ubo.mvp * (ubo.planeModel * vPosition);
-    } else {
+    if (vPosition.w == 0.0) {
         gl_Position = ubo.mvp * vec4(vPosition.xyz, 1.0);
+    } else if (vPosition.w == 1.0) {
+        gl_Position = ubo.mvp * (ubo.planeModel * vPosition);
+    } else if (vPosition.w == 2.0) {
+        gl_Position = ubo.mvp * (ubo.finishModel * vec4(vPosition.xyz, 1.0));
     }
 }
