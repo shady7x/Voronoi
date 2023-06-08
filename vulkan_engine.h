@@ -109,11 +109,12 @@ struct Vertex {
 class VulkanEngine {
     public:
         PerlinNoise2D& perlin;
-        std::vector< Vertex > vertices;
-        std::vector< uint32_t > indices;
+        std::vector<Cell*>& cells;
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
         void run();
 
-        VulkanEngine(PerlinNoise2D& perlin) : perlin(perlin) {};
+        VulkanEngine(PerlinNoise2D& perlin, std::vector<Cell*>& cells) : perlin(perlin), cells(cells) {};
 
     private:
         const std::vector<const char*> validationLayers = {
@@ -131,7 +132,7 @@ class VulkanEngine {
         
         MVP mvp {
             glm::mat4(1.0f),
-            glm::lookAt(glm::vec3(0.0f, -0.9f, -0.9f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, -1.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
             glm::perspective(glm::radians(45.0f), WIDTH / (float) HEIGHT, 0.1f, 10.0f)
         };
 
@@ -140,9 +141,10 @@ class VulkanEngine {
             glm::vec4(1, 1, 1, 0.2) 
         };
 
-        glm::mat4 planeModel = glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0, 0, 0)), static_cast<float>(M_PI / 2.0f), { -1, 0, 0 });
+        glm::mat4 planeModel = glm::rotate(glm::translate(glm::mat4(1), glm::vec3(-1, -1, 0)), static_cast<float>(M_PI / 2.0f), { -1, 0, 0 });
         
         std::atomic<float> finishMoveX = 0, finishMoveY = 0, finishMoveZ = 0;
+        std::atomic<double> finishX = MAP_WIDTH * REGION_SIZE / 2.0, finishY = MAP_HEIGHT * REGION_SIZE / 2.0;
         glm::mat4 finishModel = glm::mat4(1);
 
 

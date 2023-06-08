@@ -6,216 +6,15 @@
 #include <map>
 #include <cmath>
 #include <sstream>
-#include <deque>
 #include <memory>
 #include <limits>
 
+#include "voronoi_structs.h"
 #include "perlin_noise_2d.h"
 #include "vulkan_engine.h"
 
 
-const double EPS = 1e-9;
 
-int fuzzyCompare(double val1, double val2) {
-	double eps = (abs(val2) + 1.0) * EPS;
-	double diff = val1 - val2;
-	return diff < -eps ? -1 : (diff > eps ? 1 : 0);
-}
-
-class Point {
-    public:
-	    double x, y;
-		int32_t value;
-		uint32_t index;
-
-        Point(double x, double y, int32_t value = 0, uint32_t index = 0) : x(x), y(y), value(value), index(index) {}
-        
-		double distSqr(const Point& p) {
-            return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y);
-        }
-        
-		bool fuzzyEquals(const Point* other) {
-        	return other != nullptr && fuzzyCompare(x, other->x) == 0 && fuzzyCompare(y, other->y) == 0;
-		}
-
-		std::string toString() {
-			return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
-		}
-
-		static int orientation(Point* a, Point* b, Point* c) {
-            double s = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
-            return s < -EPS ? -1 : (s > EPS ? 1 : 0); // -1 правее(cw) a b, 0 на линии, 1 левее(ccw) a b
-        }
-};
-
-class HalfEdge;
-
-class Cell : public Point {
-	public:
-		HalfEdge* head = nullptr;
-
-		Cell(double x, double y, int32_t value = 0, uint32_t index = 0) : Point(x, y, value, index) {}
-};
-
-class Line {
-	public:
-		const double a, b, c;
-		
-		Line(double a, double b, double c) : a(a), b(b), c(c) {}
-
-		Line(const Point& p1, const Point& p2) : a(p2.y - p1.y), b(p1.x - p2.x), c(-a * p1.x - b * p1.y) {}
-		
-		Line(double x1, double y1, double x2, double y2) : a(y2 - y1), b(x1 - x2), c(-a * x1 - b * y1) {}
-		
-		bool isParallel(const Line& line) {
-			return fuzzyCompare(a * line.b, line.a * b) == 0;
-		}
-		
-		bool isEqual(const Line& line) {
-			return fuzzyCompare(a * line.b, line.a * b) == 0 
-				&& fuzzyCompare(a * line.c, line.a * c) == 0
-				&& fuzzyCompare(b * line.c, line.b * c) == 0;
-		}
-		
-		std::shared_ptr< Point > intersection(const Line& line) {
-			if (isParallel(line) || isEqual(line)) {
-				return nullptr;
-			}
-			double px = (line.b * c - b * line.c) / (line.a * b - a * line.b);
-        	double py = fuzzyCompare(b, 0) != 0 ? (-c - a * px) / b : (-line.c - line.a * px) / line.b;
-			return std::make_shared< Point >(px, py);
-		}
-		
-		static Line perpendicular(const Point& p1, const Point& p2, const Point& p) {
-			double a = p2.y - p1.y, b = p1.x - p2.x;
-			return Line(b, -a, -b * p.x + a * p.y);
-		}
-
-		std::string toString() {
-			return std::to_string(a) + "x + " + std::to_string(b) + "y + " + std::to_string(c) + " = 0";
-		}
-};
-
-class HalfEdge {
-	public:
-		Cell* cell;
-		HalfEdge* next = nullptr;
-		HalfEdge* prev = nullptr;
-		HalfEdge* twin;
-
-		HalfEdge(std::shared_ptr< Point > source, Cell* cell) : source(source), cell(cell) {}
-
-		std::string toString() {
-
-			return "HalfEdge cell: " + cell->toString() + " twin->cell: " + twin->cell->toString() + "\n"
-				+ " start: " + (getStart() != nullptr ? (std::to_string(getStart()->x) + " " + std::to_string(getStart()->y)) : getLine().toString()) + "\n"
-				+ " end: " + (getEnd() != nullptr ? (std::to_string(getEnd()->x) + " " + std::to_string(getEnd()->y)) : getLine().toString());
-		}
-
-		std::shared_ptr< Point > getStart() {
-        	return source->value == 0 ? source : nullptr;
-    	}
-
-    	std::shared_ptr< Point > getEnd() {
-        	return twin->source->value == 0 ? twin->source : nullptr;
-    	}
-
-		void setStart(std::shared_ptr< Point > p) {
-			if (twin->source->value < 0) {
-				source->value = abs(twin->source->value);
-				twin->source = source;
-			}
-			source = p;
-		}
-
-		void setEnd(std::shared_ptr< Point > p) {
-			if (source->value < 0) {
-				twin->source->value = abs(source->value);
-				source = twin->source;
-			}
-			twin->source = p;
-		}
-
-		int getQuadrant() {
-            if (source->value == 0 && twin->source->value == 0) {
-                int dx = fuzzyCompare(twin->source->x, source->x);
-                int dy = fuzzyCompare(twin->source->y, source->y);
-                if (dx >= 0 && dy > 0) return 1;
-                if (dx < 0 && dy >= 0) return 2;
-                if (dx <= 0 && dy < 0) return 3;
-                return 4;
-            }
-            if (source->value != 0) {
-                return abs(source->value);
-            }
-            return twin->source->value + (twin->source-> value < 3 ? 2 : -2);
-        }
-
-		Line getLine() {
-			if (source->value == 0 && twin->source->value == 0) {
-                return Line(*source, *twin->source);
-            }
-            if (source->value != 0 && twin->source->value != 0) {
-                return source->value > 0
-                        ? Line(source->x, source->y, twin->source->x)
-                        : Line(twin->source->x, twin->source->y, source->x);
-            }
-            return source->value > 0
-                    ? Line(source->x, source->y, -source->x * twin->source->x - source->y * twin->source->y)
-                    : Line(twin->source->x, twin->source->y, -source->x * twin->source->x - source->y * twin->source->y);
-		}
-
-		bool onEdge(const Point& p) {
-			auto s = getStart(), e = getEnd();
-            if (s != nullptr && e != nullptr) {
-                return fuzzyCompare(p.x, std::min(s->x, e->x)) >= 0 
-					&& fuzzyCompare(p.x, std::max(s->x, e->x)) <= 0
-                    && fuzzyCompare(p.y, std::min(s->y, e->y)) >= 0
-                    && fuzzyCompare(p.y, std::max(s->y, e->y)) <= 0;
-            }
-            if (s == nullptr && e == nullptr) {
-                return true;
-            }
-            switch (getQuadrant()) {
-                case 1:
-                    return s == nullptr
-                        ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) <= 0
-                        : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) >= 0;
-                case 2:
-                    return s == nullptr
-                        ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) <= 0
-                        : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) >= 0;
-                case 3:
-                    return s == nullptr
-                        ? fuzzyCompare(p.x, e->x) >= 0 && fuzzyCompare(p.y, e->y) >= 0
-                        : fuzzyCompare(p.x, s->x) <= 0 && fuzzyCompare(p.y, s->y) <= 0;
-                default:
-                    return s == nullptr
-                        ? fuzzyCompare(p.x, e->x) <= 0 && fuzzyCompare(p.y, e->y) >= 0
-                        : fuzzyCompare(p.x, s->x) >= 0 && fuzzyCompare(p.y, s->y) <= 0;
-            }
-		}
-
-		static HalfEdge* createEdge(std::shared_ptr< Point > p1, std::shared_ptr< Point > p2, const Line& l, Cell* left, Cell* right) {
-			int q = (l.a > 0 && l.b > 0) || (l.a < 0 && l.b < 0) || fuzzyCompare(l.a, 0) == 0 ? 4 : 3;
-			if (p1 == nullptr) {
-				p1 =  std::make_shared< Point >(l.a, l.b, q - 2);
-				if (p2 == nullptr) {
-					p2 =  std::make_shared< Point >(l.c, 0, -q);
-				}
-			} else if (p2 == nullptr) {
-				p2 =  std::make_shared< Point >(l.a, l.b, q);
-			}
-			HalfEdge* leftEdge = new HalfEdge(p1, left);
-			HalfEdge* rightEdge = new HalfEdge(p2, right);
-			leftEdge->twin = rightEdge->next = rightEdge->prev = rightEdge;
-			rightEdge->twin = leftEdge->next = leftEdge->prev = leftEdge;
-			return leftEdge;
-		}
-
-	private:
-		std::shared_ptr< Point > source;
-};
 
 void printCell(Cell* cell) {
 	std::cout << "-----------" << cell->value << "----------\n";
@@ -523,7 +322,7 @@ PolyNode* voronoi(const std::vector< Cell* >& cells, size_t begin, size_t end) {
 
 int main(int argc, char** argv) {
 	// freopen("output.txt", "w", stdout);
-	int32_t regionSize = 32, seed = 1686078735; //1685906448
+	int32_t seed = 1686078735; //1685906448
 	std::cout << "Seed: " << seed << std::endl;
 	PerlinNoise2D perlin(seed);
 	perlin.saveImage(MAP_WIDTH, MAP_HEIGHT, 64, 4);
@@ -532,7 +331,7 @@ int main(int argc, char** argv) {
 	std::vector<MapTile::Type> tiles;
 	for (int32_t i = 0; i < MAP_HEIGHT; ++i) {
 		for (int32_t j = 0; j < MAP_WIDTH; ++j) {
-			cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + i * regionSize, i * MAP_WIDTH + j + 1, i * MAP_WIDTH + j + 1));
+			cells.push_back(new Cell(REGION_SIZE / 2 + j * REGION_SIZE, REGION_SIZE / 2 + i * REGION_SIZE, i * MAP_WIDTH + j + 1, i * MAP_WIDTH + j + 1));
 			tiles.push_back(MapTile::getTile(perlin.noise(j / 64.0f, i / 64.0f, 4)));
 		}
 	}
@@ -540,7 +339,7 @@ int main(int argc, char** argv) {
 	time_t seed2 = seed;
 	std::cout << "Seed2: " << seed2 << std::endl; 
 	std::default_random_engine engine(seed2);
-    std::uniform_real_distribution<double> regionRand(-0.4 * regionSize, 0.4 * regionSize);
+    std::uniform_real_distribution<double> regionRand(-0.4 * REGION_SIZE, 0.4 * REGION_SIZE);
 	std::vector<int32_t> dx = {-1, -1, 1, 1}, dy = {-1, 1, 1, -1};
 	for (int32_t i = MAP_WIDTH; i < static_cast<int32_t>(tiles.size()) - MAP_WIDTH; ++i) {
 		if (i % MAP_WIDTH == 0 || i % MAP_WIDTH == MAP_WIDTH -1) continue;
@@ -558,12 +357,12 @@ int main(int argc, char** argv) {
 		cells[i]->y += round(moveY == 0 ? regionRand(engine) : (moveY < 0 ? -abs(regionRand(engine)) : abs(regionRand(engine))));
 	}
 	for (int32_t i = 0; i < MAP_HEIGHT; ++i) {
-		cells.push_back(new Cell(-regionSize / 2, regionSize / 2 + i * regionSize));
-		cells.push_back(new Cell(regionSize / 2 + MAP_WIDTH * regionSize, regionSize / 2 + i * regionSize));
+		cells.push_back(new Cell(-REGION_SIZE / 2, REGION_SIZE / 2 + i * REGION_SIZE));
+		cells.push_back(new Cell(REGION_SIZE / 2 + MAP_WIDTH * REGION_SIZE, REGION_SIZE / 2 + i * REGION_SIZE));
 	}
 	for (int32_t j = 0; j < MAP_WIDTH; ++j) {
-		cells.push_back(new Cell(regionSize / 2 + j * regionSize, -regionSize / 2));
-		cells.push_back(new Cell(regionSize / 2 + j * regionSize, regionSize / 2 + MAP_HEIGHT * regionSize));
+		cells.push_back(new Cell(REGION_SIZE / 2 + j * REGION_SIZE, -REGION_SIZE / 2));
+		cells.push_back(new Cell(REGION_SIZE / 2 + j * REGION_SIZE, REGION_SIZE / 2 + MAP_HEIGHT * REGION_SIZE));
 	}
 	sort(cells.begin(), cells.end(), [](Cell* a, Cell* b) { return fuzzyCompare(a->x, b->x) == -1 || (fuzzyCompare(a->x, b->x) == 0 && fuzzyCompare(a->y, b->y) == -1); });
 	voronoi(cells, 0, cells.size());
@@ -577,22 +376,22 @@ int main(int argc, char** argv) {
 	int32_t vertIndex = MAP_WIDTH * MAP_HEIGHT + 1;
 	for (size_t i = 0; i < cells.size(); ++i) {
 		if (cells[i]->value == 0) continue;
-		float aNoiseVal = perlin.noise((cells[i]->x / regionSize) / 64.0, (cells[i]->y / regionSize) / 64.0, 4);
+		float aNoiseVal = perlin.noise((cells[i]->x / REGION_SIZE) / 64.0, (cells[i]->y / REGION_SIZE) / 64.0, 4);
 		glm::vec3 aColor = MapTile::getColor(tiles[cells[i]->value - 1]);
 		// float tileHeight = tiles[cells[i]->value - 1] >= MapTile::MOUNTAIN ? 0 : 0.05;
 		// printCell(cells[i]);
 		auto curr = cells[i]->head;
-		Vertex a = { { 2 * cells[i]->x / (MAP_WIDTH * regionSize) - 1, 2 * cells[i]->y / (MAP_HEIGHT * regionSize) - 1, 1 - aNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 }};
+		Vertex a = { { 2 * cells[i]->x / (MAP_WIDTH * REGION_SIZE) - 1, 2 * cells[i]->y / (MAP_HEIGHT * REGION_SIZE) - 1, 1 - aNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 }};
 		vertices.emplace_back(a);
 		uint32_t aIndex = vertices.size() - 1;
 		do {
 			auto start = curr->getStart();
 			auto end = curr->getEnd();
 			if (start != nullptr && end != nullptr) {
-				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / regionSize) / 64.0, (std::max(0.0, start->y) / regionSize) / 64.0, 4);
-				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / regionSize) / 64.0, (std::max(0.0, end->y) / regionSize) / 64.0, 4);
-				Vertex b = { { 2 * start->x / (MAP_WIDTH * regionSize)  - 1, 2 * start->y / (MAP_HEIGHT * regionSize) - 1, 1 - bNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
-				Vertex c = { { 2 * end->x / (MAP_WIDTH * regionSize)  - 1, 2 * end->y / (MAP_HEIGHT * regionSize) - 1, 1 - cNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				float bNoiseVal = perlin.noise((std::max(0.0, start->x) / REGION_SIZE) / 64.0, (std::max(0.0, start->y) / REGION_SIZE) / 64.0, 4);
+				float cNoiseVal = perlin.noise((std::max(0.0, end->x) / REGION_SIZE) / 64.0, (std::max(0.0, end->y) / REGION_SIZE) / 64.0, 4);
+				Vertex b = { { 2 * start->x / (MAP_WIDTH * REGION_SIZE)  - 1, 2 * start->y / (MAP_HEIGHT * REGION_SIZE) - 1, 1 - bNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
+				Vertex c = { { 2 * end->x / (MAP_WIDTH * REGION_SIZE)  - 1, 2 * end->y / (MAP_HEIGHT * REGION_SIZE) - 1, 1 - cNoiseVal, 0 }, aColor, {0, 0, 0}, { 0.0, 0.0, 0.0 } };
 				
 				glm::vec3 vec1 = { b.pos.x - a.pos.x, b.pos.y - a.pos.y, b.pos.z - a.pos.z };
 				glm::vec3 vec2 = { c.pos.x - a.pos.x, c.pos.y - a.pos.y, c.pos.z - a.pos.z };
@@ -704,7 +503,7 @@ int main(int argc, char** argv) {
 
 
 
-	VulkanEngine vulkanEngine(perlin);
+	VulkanEngine vulkanEngine(perlin, cells);
 	vulkanEngine.vertices = vertices;
 	vulkanEngine.indices = indices;
     try {

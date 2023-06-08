@@ -4,6 +4,7 @@
 
 #define MAP_WIDTH 256
 #define MAP_HEIGHT 256
+#define REGION_SIZE 32
 
 class MapTile {
     public:

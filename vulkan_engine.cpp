@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 
+#include "voronoi_structs.h"
 #include "vulkan_engine.h"
 
 void VulkanEngine::run() {
@@ -892,17 +893,15 @@ void VulkanEngine::updateUniformBuffer(uint32_t currentImage) {
     //glm::rotate(glm::mat4(1), static_cast<float>(M_PI / 2.0f), glm::vec3(0, 1, 0));
     moveZ = 0;    
     glm::mat4 mv = mvp.view * mvp.model;
-    
-    
     if (finishMoveX != 0 || finishMoveY != 0) {
         finishModel = glm::translate(finishModel, glm::vec3(finishMoveX.load() / 500, finishMoveY.load() / 500, 0));
         glm::vec3 fPos = glm::vec3(finishModel * glm::vec4(0, 0, initialFH, 1));
-        auto curFH = 1 - perlin.noise((fPos.x + 1) * MAP_WIDTH / 2 / 64, (fPos.y + 1) * MAP_HEIGHT / 2 / 64, 4);
+        auto curFH = 1 - perlin.noise(std::max(0.0f, (fPos.x + 1) * MAP_WIDTH / 2 / 64), std::max(0.0f, (fPos.y + 1) * MAP_HEIGHT / 2 / 64), 4);
+        finishX = (fPos.x + 1) * MAP_WIDTH *  REGION_SIZE / 2;
+        finishY = (fPos.y + 1) * MAP_HEIGHT * REGION_SIZE / 2;
         finishModel = glm::translate(finishModel, glm::vec3(0, 0, curFH - prevFH));
-        std::cout << fPos.x << ' ' << fPos.y  << ' ' << curFH << std::endl;
         prevFH = curFH;
     }
-    // 
 
     Matrices matrices { mvp.projection * mv, mv, glm::transpose(glm::inverse(mv)), planeModel, finishModel }; // proj[1][1] *= -1;
     LightInfo light { mv * lightInfo.position, lightInfo.color };
